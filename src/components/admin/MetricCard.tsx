@@ -7,26 +7,25 @@ interface MetricCardProps {
   change?: string;
   changeType?: "positive" | "negative" | "neutral";
   icon?: LucideIcon;
+  mono?: boolean;
   className?: string;
 }
 
-export function MetricCard({ title, value, change, changeType = "neutral", icon: Icon, className }: MetricCardProps) {
+export function MetricCard({ title, value, change, changeType = "neutral", icon: Icon, mono, className }: MetricCardProps) {
   return (
-    <div className={cn("pixo-metric-card animate-fade-in", className)}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-        </div>
+    <div className={cn("pixo-metric-card", className)}>
+      <div className="flex items-start justify-between mb-3">
+        <p className="font-mono-label text-muted-foreground">{title}</p>
         {Icon && (
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-4.5 w-4.5 text-primary" />
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Icon className="h-4 w-4 text-primary" />
           </div>
         )}
       </div>
+      <p className={cn("text-2xl font-semibold tracking-tight", mono && "font-mono")}>{value}</p>
       {change && (
         <p className={cn(
-          "text-xs mt-2 font-medium",
+          "text-xs mt-1.5",
           changeType === "positive" && "text-pixo-green",
           changeType === "negative" && "text-pixo-red",
           changeType === "neutral" && "text-muted-foreground",
