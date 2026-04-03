@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
+import { LiveIndicator } from "@/components/admin/LiveIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,11 +14,39 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap } from "lucide-react";
 import { useState } from "react";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 export default function AdminDashboardPage() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+
+  const channelStatus = useRealtimeChannel("dashboard-stats", [
+    {
+      table: "student_profiles",
+      event: "INSERT",
+      callback: () => {
+        queryClient.invalidateQueries({ queryKey: ["dash-total-students"] });
+        queryClient.invalidateQueries({ queryKey: ["dash-level-stats"] });
+      },
+    },
+    {
+      table: "user_entitlements",
+      event: "*",
+      callback: () => {
+        queryClient.invalidateQueries({ queryKey: ["dash-paid-users"] });
+      },
+    },
+    {
+      table: "student_progress",
+      event: "*",
+      callback: () => {
+        queryClient.invalidateQueries({ queryKey: ["dash-avg-confidence"] });
+        queryClient.invalidateQueries({ queryKey: ["dash-student-registry"] });
+      },
+    },
+  ]);
 
   const { data: totalStudents } = useQuery({
     queryKey: ["dash-total-students"],
@@ -95,15 +124,22 @@ export default function AdminDashboardPage() {
   return (
     <AdminLayout title="PIXO Tracking Engine" subtitle="Real-time constraint monitoring & decision intelligence">
       <div className="space-y-6 animate-fade-in">
-        {/* Stat cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
-          <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
-          <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
+          </div>
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
+          </div>
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+          </div>
           <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
         </div>
 
-        {/* Critical Flags Banner */}
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -130,7 +166,6 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Level-Wise Conversion & Retention */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -173,7 +208,6 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Student Progress Tracking */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -230,7 +264,7 @@ export default function AdminDashboardPage() {
                       confidence >= 60 ? "on_track" : confidence >= 30 ? "at_risk" : "critical";
 
                     return (
-                      <TableRow key={student.id}>
+                      <TableRow key={student.id} className="transition-all duration-300">
                         <TableCell>
                           <div>
                             <p className="text-xs font-medium">{student.profiles?.full_name || "—"}</p>
@@ -240,7 +274,7 @@ export default function AdminDashboardPage() {
                         <TableCell className="text-xs capitalize">{student.current_level || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 min-w-[120px]">
-                            <Progress value={dayPct} className="h-1.5 flex-1" />
+                            <Progress value={dayPct} className="h-1.5 flex-1 transition-all duration-500" />
                             <span className="text-[10px] text-muted-foreground font-mono w-12 text-right">{currentDay}/180</span>
                           </div>
                         </TableCell>

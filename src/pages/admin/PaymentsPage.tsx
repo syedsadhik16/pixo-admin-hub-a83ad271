@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
+import { LiveIndicator } from "@/components/admin/LiveIndicator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,10 +14,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { CreditCard, TrendingUp, AlertTriangle, CheckCircle, Search, Download, Eye, Zap, RotateCcw } from "lucide-react";
 import { useState } from "react";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 
 export default function PaymentsPage() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const channelStatus = useRealtimeChannel("payment-alerts", [
+    {
+      table: "payment_transactions",
+      event: "*",
+      callback: () => {
+        queryClient.invalidateQueries({ queryKey: ["pay-transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["pay-metrics"] });
+      },
+    },
+  ]);
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["pay-transactions"],
@@ -46,7 +60,7 @@ export default function PaymentsPage() {
   });
 
   const filtered = (transactions ?? []).filter((t: any) => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       t.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.payment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.id.includes(searchTerm);
@@ -58,13 +72,18 @@ export default function PaymentsPage() {
     <AdminLayout title="Payments Intelligence" subtitle="Revenue tracking, audit & recovery">
       <div className="space-y-6 animate-fade-in">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard title="Gateway Success Rate" value={`${metrics?.successRate ?? 100}%`} icon={CheckCircle} changeType="positive" change="Transaction health" mono />
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Gateway Success Rate" value={`${metrics?.successRate ?? 100}%`} icon={CheckCircle} changeType="positive" change="Transaction health" mono />
+          </div>
           <MetricCard title="Monthly Revenue" value={`₹${(metrics?.capturedAmt ?? 0).toLocaleString()}`} icon={TrendingUp} change="Captured payments" changeType="positive" mono />
-          <MetricCard title="Failed Transactions" value={metrics?.failedCount ?? 0} icon={AlertTriangle} changeType={metrics?.failedCount ? "negative" : "neutral"} change={metrics?.failedCount ? `₹${(metrics.failedAmt ?? 0).toLocaleString()} recoverable` : "None"} />
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Failed Transactions" value={metrics?.failedCount ?? 0} icon={AlertTriangle} changeType={metrics?.failedCount ? "negative" : "neutral"} change={metrics?.failedCount ? `₹${(metrics.failedAmt ?? 0).toLocaleString()} recoverable` : "None"} />
+          </div>
           <MetricCard title="Pending Refunds" value={`₹${(metrics?.pendingCount ?? 0)}`} icon={CreditCard} change={`${metrics?.total ?? 0} total transactions`} changeType="neutral" />
         </div>
 
-        {/* Recovery Engine (dark panel) */}
         {(metrics?.failedCount ?? 0) > 0 && (
           <div className="pixo-dark-card">
             <div className="flex items-center justify-between mb-4">
@@ -81,8 +100,8 @@ export default function PaymentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="rounded-lg bg-sidebar-accent/50 p-3">
                 <p className="font-mono-label text-sidebar-foreground/50 mb-1">Failure Topology</p>
-                <p className="text-xs text-sidebar-foreground">Gateway Timeout: {Math.ceil((metrics?.failedCount ?? 0) * 0.6)}</p>
-                <p className="text-xs text-sidebar-foreground">User Abandonment: {Math.floor((metrics?.failedCount ?? 0) * 0.4)}</p>
+                <p className="text-xs text-sidebar-foreground">Gateway Timeout: {Math.ceil((metrics?.failedCount ?? 0) * 0.33)}</p>
+                <p className="text-xs text-sidebar-foreground">User Abandonment: {Math.floor((metrics?.failedCount ?? 0) * 0.33)}</p>
               </div>
               <div className="rounded-lg bg-sidebar-accent/50 p-3">
                 <p className="font-mono-label text-sidebar-foreground/50 mb-1">Automated Retry</p>
@@ -98,7 +117,6 @@ export default function PaymentsPage() {
           </div>
         )}
 
-        {/* Transaction Registry */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -145,7 +163,7 @@ export default function PaymentsPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((tx: any) => (
-                    <TableRow key={tx.id}>
+                    <TableRow key={tx.id} className="transition-all duration-300">
                       <TableCell className="font-mono text-xs">{tx.payment_id || tx.id.slice(0, 12)}</TableCell>
                       <TableCell className="text-xs">{tx.profiles?.full_name || "—"}</TableCell>
                       <TableCell className="text-xs font-medium">₹{Number(tx.amount).toLocaleString()}</TableCell>
