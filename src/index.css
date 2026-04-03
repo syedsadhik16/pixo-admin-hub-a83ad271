@@ -13,13 +13,13 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 234 62% 26%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
+    --muted: 220 14% 96%;
     --muted-foreground: 215 16% 47%;
 
     --accent: 262 52% 47%;
@@ -28,14 +28,15 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 234 62% 26%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
-    /* PIXO custom tokens */
-    --pixo-navy: 234 62% 26%;
+    /* PIXO BRAIN tokens */
+    --pixo-navy: 234 62% 16%;
+    --pixo-indigo: 239 84% 67%;
     --pixo-purple: 262 52% 47%;
     --pixo-blue: 217 91% 60%;
     --pixo-green: 142 71% 45%;
@@ -44,53 +45,44 @@
     --pixo-surface: 220 14% 96%;
     --pixo-surface-elevated: 0 0% 100%;
 
-    --sidebar-background: 234 62% 16%;
-    --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 262 52% 60%;
+    --sidebar-background: 234 47% 12%;
+    --sidebar-foreground: 220 20% 82%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 234 50% 22%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 234 40% 24%;
-    --sidebar-ring: 262 52% 47%;
+    --sidebar-accent: 234 40% 18%;
+    --sidebar-accent-foreground: 220 20% 95%;
+    --sidebar-border: 234 30% 20%;
+    --sidebar-ring: 239 84% 67%;
   }
 
   .dark {
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-
     --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 262 52% 60%;
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-
     --accent: 262 52% 47%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 262 52% 60%;
-
+    --ring: 239 84% 67%;
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 210 40% 92%;
-    --sidebar-primary: 262 52% 60%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 40% 12%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 222 33% 14%;
-    --sidebar-ring: 262 52% 47%;
+    --sidebar-ring: 239 84% 67%;
   }
 }
 
@@ -98,29 +90,35 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
 @layer utilities {
   .pixo-gradient {
-    background: linear-gradient(135deg, hsl(var(--pixo-navy)), hsl(var(--pixo-purple)));
+    background: linear-gradient(135deg, hsl(var(--pixo-indigo)), hsl(var(--pixo-purple)));
   }
-  
   .pixo-gradient-text {
-    background: linear-gradient(135deg, hsl(var(--pixo-navy)), hsl(var(--pixo-purple)));
+    background: linear-gradient(135deg, hsl(var(--pixo-indigo)), hsl(var(--pixo-purple)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-
   .pixo-card {
     @apply rounded-xl border bg-card shadow-sm;
   }
-
   .pixo-metric-card {
-    @apply rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md;
+    @apply rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md;
+  }
+  .pixo-dark-card {
+    @apply rounded-xl border border-sidebar-border bg-sidebar p-5 text-sidebar-foreground;
+  }
+  .font-mono-label {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 }
