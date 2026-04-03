@@ -14,16 +14,842 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_behavior_settings: {
+        Row: {
+          accuracy_strictness: number | null
+          confidence_priority: boolean | null
+          correction_mode: string | null
+          id: string
+          is_active: boolean | null
+          max_corrections: number | null
+          persona: string | null
+          preview_prompt: string | null
+          system_prompt: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accuracy_strictness?: number | null
+          confidence_priority?: boolean | null
+          correction_mode?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_corrections?: number | null
+          persona?: string | null
+          preview_prompt?: string | null
+          system_prompt?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accuracy_strictness?: number | null
+          confidence_priority?: boolean | null
+          correction_mode?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_corrections?: number | null
+          persona?: string | null
+          preview_prompt?: string | null
+          system_prompt?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      app_versions: {
+        Row: {
+          deployed_at: string | null
+          deployed_by: string | null
+          environment: string | null
+          id: string
+          is_active: boolean | null
+          release_notes: string | null
+          version_name: string
+        }
+        Insert: {
+          deployed_at?: string | null
+          deployed_by?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          release_notes?: string | null
+          version_name: string
+        }
+        Update: {
+          deployed_at?: string | null
+          deployed_by?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          release_notes?: string | null
+          version_name?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action_type: string
+          actor_role: string | null
+          actor_user_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string | null
+          id: string
+          meta: Json | null
+          module_key: string | null
+          target_id: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          module_key?: string | null
+          target_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          module_key?: string | null
+          target_id?: string | null
+        }
+        Relationships: []
+      }
+      curriculum_day_parts: {
+        Row: {
+          activity_type: string | null
+          content_json: Json | null
+          created_at: string | null
+          day_id: string | null
+          duration_minutes: number | null
+          id: string
+          instructions: string | null
+          media_json: Json | null
+          part_number: number
+          skill_focus: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          day_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          media_json?: Json | null
+          part_number: number
+          skill_focus?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          day_id?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          media_json?: Json | null
+          part_number?: number
+          skill_focus?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_day_parts_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_days: {
+        Row: {
+          badge_label: string | null
+          created_at: string | null
+          day_number: number
+          id: string
+          is_free: boolean | null
+          is_published: boolean | null
+          level_id: string | null
+          objective: string | null
+          theme: string | null
+          title: string | null
+          updated_at: string | null
+          version_number: number | null
+          week_id: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          badge_label?: string | null
+          created_at?: string | null
+          day_number: number
+          id?: string
+          is_free?: boolean | null
+          is_published?: boolean | null
+          level_id?: string | null
+          objective?: string | null
+          theme?: string | null
+          title?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+          week_id?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          badge_label?: string | null
+          created_at?: string | null
+          day_number?: number
+          id?: string
+          is_free?: boolean | null
+          is_published?: boolean | null
+          level_id?: string | null
+          objective?: string | null
+          theme?: string | null
+          title?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+          week_id?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_days_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_days_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_levels: {
+        Row: {
+          age_range: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          level_key: string
+          title: string
+        }
+        Insert: {
+          age_range?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_key: string
+          title: string
+        }
+        Update: {
+          age_range?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_key?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      curriculum_weeks: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_published: boolean | null
+          level_id: string | null
+          objective: string | null
+          reward_label: string | null
+          title: string | null
+          updated_at: string | null
+          week_number: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          level_id?: string | null
+          objective?: string | null
+          reward_label?: string | null
+          title?: string | null
+          updated_at?: string | null
+          week_number: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          level_id?: string | null
+          objective?: string | null
+          reward_label?: string | null
+          title?: string | null
+          updated_at?: string | null
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_weeks_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          description: string | null
+          flag_key: string
+          flag_value: boolean | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          flag_key: string
+          flag_value?: boolean | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          flag_key?: string
+          flag_value?: boolean | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      learner_parent_outputs: {
+        Row: {
+          ai_tone: string | null
+          id: string
+          student_user_id: string
+          summary_json: Json | null
+          updated_at: string | null
+          visible_insights: Json | null
+        }
+        Insert: {
+          ai_tone?: string | null
+          id?: string
+          student_user_id: string
+          summary_json?: Json | null
+          updated_at?: string | null
+          visible_insights?: Json | null
+        }
+        Update: {
+          ai_tone?: string | null
+          id?: string
+          student_user_id?: string
+          summary_json?: Json | null
+          updated_at?: string | null
+          visible_insights?: Json | null
+        }
+        Relationships: []
+      }
+      parent_children: {
+        Row: {
+          created_at: string | null
+          id: string
+          parent_user_id: string
+          relation_type: string | null
+          status: string | null
+          student_user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          parent_user_id: string
+          relation_type?: string | null
+          status?: string | null
+          student_user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          parent_user_id?: string
+          relation_type?: string | null
+          status?: string | null
+          student_user_id?: string
+        }
+        Relationships: []
+      }
+      parent_connect_settings: {
+        Row: {
+          ai_tone: string | null
+          id: string
+          intervention_enabled: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+          visibility_flags: Json | null
+        }
+        Insert: {
+          ai_tone?: string | null
+          id?: string
+          intervention_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          visibility_flags?: Json | null
+        }
+        Update: {
+          ai_tone?: string | null
+          id?: string
+          intervention_enabled?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+          visibility_flags?: Json | null
+        }
+        Relationships: []
+      }
+      parent_profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          relationship_label: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          relationship_label?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          relationship_label?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_orders: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          notes: Json | null
+          order_id: string | null
+          plan_name: string | null
+          receipt: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: Json | null
+          order_id?: string | null
+          plan_name?: string | null
+          receipt?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: Json | null
+          order_id?: string | null
+          plan_name?: string | null
+          receipt?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          invoice_url: string | null
+          order_id: string | null
+          payment_id: string | null
+          payment_method: string | null
+          signature: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          invoice_url?: string | null
+          order_id?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          signature?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          invoice_url?: string | null
+          order_id?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          signature?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          is_active?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_edit: boolean | null
+          can_publish: boolean | null
+          can_view: boolean | null
+          id: string
+          module_key: string
+          role: string
+        }
+        Insert: {
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_publish?: boolean | null
+          can_view?: boolean | null
+          id?: string
+          module_key: string
+          role: string
+        }
+        Update: {
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          can_publish?: boolean | null
+          can_view?: boolean | null
+          id?: string
+          module_key?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      staff_members: {
+        Row: {
+          active_status: string | null
+          created_at: string | null
+          department: string | null
+          id: string
+          invited_by: string | null
+          permissions: Json | null
+          staff_role: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_status?: string | null
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          invited_by?: string | null
+          permissions?: Json | null
+          staff_role?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_status?: string | null
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          invited_by?: string | null
+          permissions?: Json | null
+          staff_role?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_profiles: {
+        Row: {
+          active_plan: string | null
+          age: number | null
+          created_at: string | null
+          current_level: string | null
+          grade: string | null
+          id: string
+          onboarding_completed: boolean | null
+          school_board: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_plan?: string | null
+          age?: number | null
+          created_at?: string | null
+          current_level?: string | null
+          grade?: string | null
+          id?: string
+          onboarding_completed?: boolean | null
+          school_board?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_plan?: string | null
+          age?: number | null
+          created_at?: string | null
+          current_level?: string | null
+          grade?: string | null
+          id?: string
+          onboarding_completed?: boolean | null
+          school_board?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_progress: {
+        Row: {
+          accuracy_score: number | null
+          completed_days: number | null
+          confidence_score: number | null
+          current_day: number | null
+          current_level: string | null
+          engagement_score: number | null
+          fluency_score: number | null
+          id: string
+          streak_count: number | null
+          student_user_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          completed_days?: number | null
+          confidence_score?: number | null
+          current_day?: number | null
+          current_level?: string | null
+          engagement_score?: number | null
+          fluency_score?: number | null
+          id?: string
+          streak_count?: number | null
+          student_user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          completed_days?: number | null
+          confidence_score?: number | null
+          current_day?: number | null
+          current_level?: string | null
+          engagement_score?: number | null
+          fluency_score?: number | null
+          id?: string
+          streak_count?: number | null
+          student_user_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_sync_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          payload: Json | null
+          status: string | null
+          sync_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          status?: string | null
+          sync_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payload?: Json | null
+          status?: string | null
+          sync_type?: string | null
+        }
+        Relationships: []
+      }
+      ui_config: {
+        Row: {
+          config_key: string
+          config_value: Json | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      user_entitlements: {
+        Row: {
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          payment_status: string | null
+          plan_duration_months: number | null
+          plan_name: string | null
+          updated_at: string | null
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          payment_status?: string | null
+          plan_duration_months?: number | null
+          plan_name?: string | null
+          updated_at?: string | null
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          payment_status?: string | null
+          plan_duration_months?: number | null
+          plan_name?: string | null
+          updated_at?: string | null
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_founder: { Args: { _user_id: string }; Returns: boolean }
+      is_parent_of: {
+        Args: { _child_id: string; _parent_id: string }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "student"
+        | "parent"
+        | "admin"
+        | "founder"
+        | "staff_support"
+        | "staff_sales"
+        | "staff_content"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +976,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "student",
+        "parent",
+        "admin",
+        "founder",
+        "staff_support",
+        "staff_sales",
+        "staff_content",
+      ],
+    },
   },
 } as const
