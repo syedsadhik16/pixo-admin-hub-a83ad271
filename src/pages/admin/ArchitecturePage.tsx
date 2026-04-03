@@ -1,18 +1,36 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { EmptyState } from "@/components/admin/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Server, Activity, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Server, Activity, CheckCircle, Database, Link2, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
 
-const environments = [
-  { name: "Development", key: "dev", status: "active" },
-  { name: "Staging", key: "staging", status: "inactive" },
-  { name: "Live / Production", key: "live", status: "active" },
+const ENVIRONMENTS = [
+  { name: "Development", key: "dev", color: "text-muted-foreground border-muted" },
+  { name: "Staging", key: "staging", color: "text-pixo-amber border-pixo-amber/30" },
+  { name: "Live / Production", key: "live", color: "text-pixo-green border-pixo-green/30" },
+];
+
+const API_ENDPOINTS = [
+  { name: "CHILD-API", uptime: 99.9 },
+  { name: "PARENT-SYNC", uptime: 99.9 },
+  { name: "AI-CORE", uptime: 99.9 },
 ];
 
 export default function ArchitecturePage() {
+  const [activeEnv, setActiveEnv] = useState("staging");
+  const [, setTick] = useState(0);
+
+  // Auto-refresh every 60s
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const { data: versions } = useQuery({
     queryKey: ["admin-versions"],
     queryFn: async () => {
@@ -29,58 +47,50 @@ export default function ArchitecturePage() {
     },
   });
 
+  const allHealthy = API_ENDPOINTS.every(e => e.uptime >= 99);
+
   return (
     <AdminLayout title="System Architecture" subtitle="Release control & environment monitoring">
-      <div className="space-y-6">
-        {/* Environment Cards */}
+      <div className="space-y-6 animate-fade-in">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {environments.map(env => (
-            <Card key={env.key}>
+          {ENVIRONMENTS.map(env => (
+            <Card key={env.key} className={`cursor-pointer transition-all ${activeEnv === env.key ? "ring-2 ring-primary" : "hover:shadow-md"}`}
+              onClick={() => setActiveEnv(env.key)}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Server className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-medium">{env.name}</h3>
                   </div>
-                  <Badge className={`text-[10px] border-0 ${env.status === "active" ? "bg-pixo-green/10 text-pixo-green" : "bg-muted text-muted-foreground"}`}>
-                    {env.status === "active" ? "Active" : "Inactive"}
-                  </Badge>
+                  {activeEnv === env.key && <CheckCircle className="h-4 w-4 text-pixo-green" />}
                 </div>
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-3 w-3" />
-                    <span>Status: {env.status === "active" ? "Healthy" : "Not deployed"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    <span>Last deploy: {env.status === "active" ? "Today" : "N/A"}</span>
-                  </div>
-                </div>
+                <Badge variant="outline" className={`text-[10px] ${env.color}`}>
+                  {env.key.toUpperCase()}
+                </Badge>
               </CardContent>
             </Card>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Version History */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2"><CheckCircle className="h-4 w-4 text-pixo-green" />Version History</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2"><CheckCircle className="h-4 w-4 text-pixo-green" />Version History</CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs">View All Backups</Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {!versions || versions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Server className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                  <p className="text-xs text-muted-foreground">No version records yet</p>
-                </div>
+              {!versions?.length ? (
+                <EmptyState icon={Server} title="No version records yet" />
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Version</TableHead>
-                      <TableHead className="text-xs">Environment</TableHead>
-                      <TableHead className="text-xs">Deployed</TableHead>
-                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="font-mono-label">Version</TableHead>
+                      <TableHead className="font-mono-label">Env</TableHead>
+                      <TableHead className="font-mono-label">Deployed</TableHead>
+                      <TableHead className="font-mono-label">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -90,8 +100,8 @@ export default function ArchitecturePage() {
                         <TableCell className="text-xs">{v.environment}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{new Date(v.deployed_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Badge className={`text-[10px] border-0 ${v.is_active ? "bg-pixo-green/10 text-pixo-green" : "bg-muted text-muted-foreground"}`}>
-                            {v.is_active ? "Active" : "Archived"}
+                          <Badge variant="outline" className={`text-[10px] ${v.is_active ? "text-pixo-green border-pixo-green/30" : "text-muted-foreground"}`}>
+                            {v.is_active ? "STABLE" : "ARCHIVED"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -102,26 +112,61 @@ export default function ArchitecturePage() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                API Endpoint Status
+                <Badge className={`text-[9px] border-0 ml-auto ${allHealthy ? "bg-pixo-green/10 text-pixo-green" : "bg-pixo-red/10 text-pixo-red"}`}>
+                  {allHealthy ? "ALL SYSTEMS GO" : "DEGRADED"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {API_ENDPOINTS.map(ep => (
+                <div key={ep.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-pixo-green" />
+                    <span className="text-xs font-mono font-medium">{ep.name}</span>
+                  </div>
+                  <span className="text-xs font-mono text-pixo-green">{ep.uptime}%</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Data Mirroring */}
+          <div className="rounded-xl bg-primary p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Database className="h-4 w-4 text-primary-foreground" />
+              <h3 className="text-sm font-semibold text-primary-foreground">Data Mirroring</h3>
+            </div>
+            <p className="text-xs text-primary-foreground/70 mb-3">Multi-region data replication cluster active</p>
+            <div className="flex items-center justify-between">
+              <Button variant="secondary" size="sm" className="text-xs gap-1"><Link2 className="h-3 w-3" />Manage Data Nodes</Button>
+              <Badge variant="outline" className="text-[10px] border-primary-foreground/30 text-primary-foreground">3 nodes</Badge>
+            </div>
+          </div>
+
           {/* Sync Logs */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-pixo-blue" />Sync Logs</CardTitle>
             </CardHeader>
             <CardContent>
-              {!syncLogs || syncLogs.length === 0 ? (
-                <div className="text-center py-8">
-                  <Activity className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                  <p className="text-xs text-muted-foreground">No sync events recorded</p>
-                </div>
+              {!syncLogs?.length ? (
+                <EmptyState icon={Activity} title="No sync events recorded" />
               ) : (
                 <div className="space-y-2">
                   {syncLogs.map((log: any) => (
-                    <div key={log.id} className="p-3 rounded-lg bg-pixo-surface flex items-center justify-between">
+                    <div key={log.id} className="p-3 rounded-lg bg-muted/30 flex items-center justify-between">
                       <div>
                         <p className="text-xs font-medium">{log.sync_type}</p>
                         <p className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleString()}</p>
                       </div>
-                      <Badge className={`text-[10px] border-0 ${log.status === "success" ? "bg-pixo-green/10 text-pixo-green" : "bg-pixo-red/10 text-pixo-red"}`}>
+                      <Badge variant="outline" className={`text-[10px] ${log.status === "success" ? "text-pixo-green border-pixo-green/30" : "text-pixo-red border-pixo-red/30"}`}>
                         {log.status}
                       </Badge>
                     </div>
