@@ -8,7 +8,7 @@ import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Users, TrendingUp, AlertTriangle, Activity, Target, Shield, Zap, BarChart3 } from "lucide-react";
+import { DollarSign, TrendingUp, AlertTriangle, Activity, Target, Shield, Zap, BarChart3 } from "lucide-react";
 
 export default function FounderHQPage() {
   const { data: students, isLoading } = useQuery({
