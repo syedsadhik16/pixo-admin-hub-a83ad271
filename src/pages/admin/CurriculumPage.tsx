@@ -23,7 +23,7 @@ export default function CurriculumPage() {
   const queryClient = useQueryClient();
   const [activeLevel, setActiveLevel] = useState("beginner");
   const [createDayOpen, setCreateDayOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<any>(null);
+  const [_selectedDay, setSelectedDay] = useState<any>(null);
 
   const { data: levels } = useQuery({
     queryKey: ["cur-levels"],

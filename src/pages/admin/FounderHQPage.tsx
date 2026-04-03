@@ -19,14 +19,6 @@ export default function FounderHQPage() {
     },
   });
 
-  const { data: parents } = useQuery({
-    queryKey: ["fhq-parent-count"],
-    queryFn: async () => {
-      const { count } = await supabase.from("parent_profiles").select("*", { count: "exact", head: true });
-      return count ?? 0;
-    },
-  });
-
   const { data: paidUsers } = useQuery({
     queryKey: ["fhq-paid-count"],
     queryFn: async () => {

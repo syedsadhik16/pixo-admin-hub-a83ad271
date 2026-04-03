@@ -19,7 +19,7 @@ export default function AdminDashboardPage() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
 
-  const { data: totalStudents, isLoading: loadingStudents } = useQuery({
+  const { data: totalStudents } = useQuery({
     queryKey: ["dash-total-students"],
     queryFn: async () => {
       const { count } = await supabase.from("student_profiles").select("*", { count: "exact", head: true });
