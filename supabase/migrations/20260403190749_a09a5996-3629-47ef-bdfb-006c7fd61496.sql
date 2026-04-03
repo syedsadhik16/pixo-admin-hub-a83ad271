@@ -1,0 +1,20 @@
+-- Drop FK constraints to auth.users from public tables to allow seed data
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+ALTER TABLE student_profiles DROP CONSTRAINT IF EXISTS student_profiles_user_id_fkey;
+ALTER TABLE student_progress DROP CONSTRAINT IF EXISTS student_progress_student_user_id_fkey;
+ALTER TABLE payment_transactions DROP CONSTRAINT IF EXISTS payment_transactions_user_id_fkey;
+ALTER TABLE user_entitlements DROP CONSTRAINT IF EXISTS user_entitlements_user_id_fkey;
+ALTER TABLE staff_members DROP CONSTRAINT IF EXISTS staff_members_user_id_fkey;
+ALTER TABLE staff_members DROP CONSTRAINT IF EXISTS staff_members_invited_by_fkey;
+ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_user_id_fkey;
+ALTER TABLE audit_logs DROP CONSTRAINT IF EXISTS audit_logs_actor_user_id_fkey;
+ALTER TABLE payment_orders DROP CONSTRAINT IF EXISTS payment_orders_user_id_fkey;
+ALTER TABLE parent_children DROP CONSTRAINT IF EXISTS parent_children_parent_user_id_fkey;
+ALTER TABLE parent_children DROP CONSTRAINT IF EXISTS parent_children_student_user_id_fkey;
+ALTER TABLE parent_profiles DROP CONSTRAINT IF EXISTS parent_profiles_user_id_fkey;
+ALTER TABLE learner_parent_outputs DROP CONSTRAINT IF EXISTS learner_parent_outputs_student_user_id_fkey;
+ALTER TABLE ai_behavior_settings DROP CONSTRAINT IF EXISTS ai_behavior_settings_updated_by_fkey;
+ALTER TABLE app_versions DROP CONSTRAINT IF EXISTS app_versions_deployed_by_fkey;
+ALTER TABLE feature_flags DROP CONSTRAINT IF EXISTS feature_flags_updated_by_fkey;
+ALTER TABLE parent_connect_settings DROP CONSTRAINT IF EXISTS parent_connect_settings_updated_by_fkey;
+ALTER TABLE ui_config DROP CONSTRAINT IF EXISTS ui_config_updated_by_fkey;
