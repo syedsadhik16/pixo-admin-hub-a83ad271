@@ -15,14 +15,14 @@ function escapeCell(val: unknown): string {
   return s;
 }
 
-export function rowsToCsv<T extends Record<string, unknown>>(
+export function rowsToCsv<T>(
   rows: T[],
   columns?: { key: keyof T; label: string }[],
 ): string {
   if (rows.length === 0 && !columns) return "";
-  const cols = columns ?? Object.keys(rows[0] ?? {}).map(k => ({ key: k as keyof T, label: k }));
+  const cols = columns ?? Object.keys((rows[0] ?? {}) as object).map(k => ({ key: k as keyof T, label: k }));
   const header = cols.map(c => escapeCell(c.label)).join(",");
-  const body = rows.map(r => cols.map(c => escapeCell(r[c.key])).join(",")).join("\n");
+  const body = rows.map(r => cols.map(c => escapeCell((r as Record<string, unknown>)[c.key as string])).join(",")).join("\n");
   return `${header}\n${body}`;
 }
 
@@ -55,7 +55,7 @@ export async function logExport(opts: {
   }]);
 }
 
-export async function exportAndDownload<T extends Record<string, unknown>>(
+export async function exportAndDownload<T>(
   filename: string,
   rows: T[],
   columns: { key: keyof T; label: string }[],
