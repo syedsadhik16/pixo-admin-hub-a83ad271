@@ -204,6 +204,23 @@ export default function SalesPage() {
     return Array.from(set);
   }, [txnsQ.data]);
 
+  const revenueByEmployee = useMemo(() => {
+    return performanceRows
+      .filter(r => r.revenue > 0)
+      .map(r => ({ name: r.employee_code, fullName: r.name, revenue: r.revenue, commission: r.commission }));
+  }, [performanceRows]);
+
+  const revenueByPlan = useMemo(() => {
+    const map = new Map<string, number>();
+    (txnsQ.data ?? []).forEach(t => {
+      const key = t.plan_name || `₹${Number(t.plan_amount).toLocaleString("en-IN")}`;
+      map.set(key, (map.get(key) ?? 0) + Number(t.plan_amount));
+    });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [txnsQ.data]);
+
   async function exportPerformance() {
     await exportAndDownload(
       `pixo-employee-performance-${new Date().toISOString().slice(0, 10)}`,
