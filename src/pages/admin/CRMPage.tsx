@@ -16,8 +16,9 @@ import { Search, Target, Download, Edit2 } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
-type Stage = "cold" | "warm" | "hot" | "subscribed" | "inactive" | "dropped";
-const STAGES: Stage[] = ["cold", "warm", "hot", "subscribed", "inactive", "dropped"];
+// Stage vocabulary matches the lead_events_autobump trigger and the lead_pipeline check constraint.
+type Stage = "cold" | "warm" | "hot" | "converted" | "dropped";
+const STAGES: Stage[] = ["cold", "warm", "hot", "converted", "dropped"];
 
 interface LeadRow {
   user_id: string;
@@ -36,10 +37,9 @@ interface LeadRow {
 }
 
 function stageVariant(s: Stage) {
-  if (s === "subscribed") return "default" as const;
+  if (s === "converted") return "default" as const;
   if (s === "hot") return "destructive" as const;
   if (s === "warm") return "secondary" as const;
-  if (s === "dropped" || s === "inactive") return "outline" as const;
   return "outline" as const;
 }
 
@@ -81,7 +81,7 @@ export default function CRMPage() {
           user_type: userType,
           signup_date: p.created_at,
           signup_source: p.signup_source,
-          stage: (pipe?.stage ?? (ent?.is_active ? "subscribed" : "cold")) as Stage,
+          stage: (pipe?.stage ?? (ent?.is_active ? "converted" : "cold")) as Stage,
           remarks: pipe?.remarks ?? "",
           next_follow_up: pipe?.next_follow_up_at ?? null,
           pricing_visited: !!pipe?.pricing_page_visited,
@@ -104,7 +104,7 @@ export default function CRMPage() {
   }, [data, stageFilter, search]);
 
   const counts = useMemo(() => {
-    const c = { cold: 0, warm: 0, hot: 0, subscribed: 0, inactive: 0, dropped: 0 } as Record<Stage, number>;
+    const c = { cold: 0, warm: 0, hot: 0, converted: 0, dropped: 0 } as Record<Stage, number>;
     (data ?? []).forEach(r => { c[r.stage] = (c[r.stage] ?? 0) + 1; });
     return c;
   }, [data]);
@@ -161,7 +161,7 @@ export default function CRMPage() {
   return (
     <AdminLayout title="CRM / Leads Pipeline" subtitle="Every signup, every stage. Edit inline.">
       <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {STAGES.map(s => (
             <Card key={s} className="cursor-pointer" onClick={() => setStageFilter(s)}>
               <CardContent className="p-4">
