@@ -151,7 +151,6 @@ export default function AdminDashboardPage() {
             </div>
             <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
           </div>
-        </div>
 
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
           <CardHeader className="pb-2">
