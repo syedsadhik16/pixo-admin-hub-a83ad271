@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap } from "lucide-react";
+import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap, Heart, CreditCard, Target, XCircle, CheckCircle2, Clock } from "lucide-react";
 import { useState } from "react";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -112,6 +112,50 @@ export default function AdminDashboardPage() {
         .select(`*, profiles:user_id(full_name, email), student_progress:student_progress(*)`)
         .limit(50);
       return data ?? [];
+    },
+  });
+
+  const { data: overview } = useQuery({
+    queryKey: ["dash-overview-counts"],
+    queryFn: async () => {
+      const [users, students, parents, links, ents, txAll, txPaid, txFailed] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("student_profiles").select("*", { count: "exact", head: true }),
+        supabase.from("parent_profiles").select("*", { count: "exact", head: true }),
+        supabase.from("parent_children").select("*", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("user_entitlements").select("plan_name, is_active, valid_until"),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }).in("status", ["captured", "success", "paid"]),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }).eq("status", "failed"),
+      ]);
+      const now = Date.now();
+      let trial = 0, expired = 0, subscribed = 0;
+      (ents.data ?? []).forEach(e => {
+        const exp = e.valid_until ? new Date(e.valid_until).getTime() : null;
+        if (exp && exp < now) expired++;
+        else if (e.is_active) {
+          subscribed++;
+          if ((e.plan_name ?? "").toLowerCase() === "trial") trial++;
+        }
+      });
+      return {
+        totalUsers: users.count ?? 0,
+        totalStudents: students.count ?? 0,
+        totalParents: parents.count ?? 0,
+        linkedParents: links.count ?? 0,
+        subscribed, trial, expired,
+        totalTx: txAll.count ?? 0,
+        paidTx: txPaid.count ?? 0,
+        failedTx: txFailed.count ?? 0,
+      };
+    },
+  });
+
+  const { data: leadCount } = useQuery({
+    queryKey: ["dash-lead-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      return count ?? 0;
     },
   });
 
