@@ -50,7 +50,7 @@ export async function logExport(opts: {
     actor_user_id: user.id,
     export_type: opts.exportType,
     row_count: opts.rowCount,
-    filters: opts.filters ?? {},
+    filters: (opts.filters ?? {}) as never,
     destination: opts.destination ?? "csv",
   }]);
 }
