@@ -15,6 +15,10 @@ import { Progress } from "@/components/ui/progress";
 import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap } from "lucide-react";
 import { useState } from "react";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
+import { StudentsTab } from "@/components/admin/StudentsTab";
+import { ParentsTab } from "@/components/admin/ParentsTab";
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
@@ -123,22 +127,30 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout title="PIXO Tracking Engine" subtitle="Real-time constraint monitoring & decision intelligence">
-      <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
+      <Tabs defaultValue="overview" className="space-y-6 animate-fade-in">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="parents">Parents</TabsTrigger>
+          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
+            </div>
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
+            </div>
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+            </div>
+            <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
           </div>
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
-          </div>
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
-          </div>
-          <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
-        </div>
 
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
           <CardHeader className="pb-2">
@@ -293,7 +305,12 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="students"><StudentsTab /></TabsContent>
+        <TabsContent value="parents"><ParentsTab /></TabsContent>
+        <TabsContent value="subscriptions"><SubscriptionsTab /></TabsContent>
+      </Tabs>
     </AdminLayout>
   );
 }
