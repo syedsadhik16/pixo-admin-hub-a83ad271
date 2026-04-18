@@ -23,9 +23,20 @@ export default function EmployeesPage() {
   const queryClient = useQueryClient();
   const { user, isFounder } = useAuthContext();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"founder" | "admin">(isFounder() ? "founder" : "admin");
   const [jsonView, setJsonView] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", staff_role: "staff_support", department: "" });
+  const [createForm, setCreateForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    employee_code: "",
+    role: "admin",
+    joining_date: "",
+    status: "active",
+    password: "",
+  });
 
   const { data: staff, isLoading } = useQuery({
     queryKey: ["admin-staff"],
@@ -67,6 +78,31 @@ export default function EmployeesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createStaffUser = useMutation({
+    mutationFn: async () => {
+      const { full_name, email, employee_code, password } = createForm;
+      if (!full_name || !email || !employee_code || !password) {
+        throw new Error("Full name, email, employee code, and password are required");
+      }
+      if (password.length < 8) throw new Error("Password must be at least 8 characters");
+
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: createForm,
+      });
+      if (error) throw new Error(error.message ?? "Failed to create user");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-employees"] });
+      toast.success(`Staff user created: ${data?.email ?? createForm.email}`);
+      setCreateUserOpen(false);
+      setCreateForm({ full_name: "", email: "", phone: "", employee_code: "", role: "admin", joining_date: "", status: "active", password: "" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const founderMode = viewMode === "founder" && isFounder();
 
   return (
@@ -87,6 +123,72 @@ export default function EmployeesPage() {
                 <Code className="h-3 w-3" />{jsonView ? "Table View" : "JSON View"}
               </Button>
             )}
+            <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="text-xs gap-1.5"><UserPlus className="h-3.5 w-3.5" />Create Staff User</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle>Create Staff User (Auth + Profile)</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Full Name *</Label>
+                      <Input value={createForm.full_name} onChange={e => setCreateForm(f => ({ ...f, full_name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Employee Code *</Label>
+                      <Input value={createForm.employee_code} onChange={e => setCreateForm(f => ({ ...f, employee_code: e.target.value }))} placeholder="e.g. EMP005" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Email *</Label>
+                    <Input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Phone</Label>
+                      <Input value={createForm.phone} onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Joining Date</Label>
+                      <Input type="date" value={createForm.joining_date} onChange={e => setCreateForm(f => ({ ...f, joining_date: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Role</Label>
+                      <Select value={createForm.role} onValueChange={v => setCreateForm(f => ({ ...f, role: v }))}>
+                        <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem value="ops">Ops</SelectItem>
+                          <SelectItem value="staff">Staff</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Status</Label>
+                      <Select value={createForm.status} onValueChange={v => setCreateForm(f => ({ ...f, status: v }))}>
+                        <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Temporary Password * (min 8 chars)</Label>
+                    <Input type="text" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="Will be set as login password" />
+                  </div>
+                  <Button onClick={() => createStaffUser.mutate()} disabled={createStaffUser.isPending} className="w-full">
+                    {createStaffUser.isPending ? "Creating..." : "Create Auth User + Profile"}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">Creates a Supabase Auth user and matching employee_profiles row in one step. Hand the temporary password to the user.</p>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button variant="outline" size="sm" className="text-xs gap-1"><FileText className="h-3 w-3" />Bulk Audit</Button>
           </div>
         </div>
