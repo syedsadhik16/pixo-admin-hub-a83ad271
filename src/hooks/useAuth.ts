@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
 import type { User, Session } from "@supabase/supabase-js";
 
 export type EmployeeRole = "admin" | "sales" | "ops" | "founder" | "staff";
@@ -29,22 +30,47 @@ export function useAuth() {
     loading: true,
     accessError: null,
   });
+  const devBootstrapRan = useRef(false);
 
   const fetchEmployee = useCallback(async (email: string | undefined): Promise<{ employee: EmployeeRecord | null; error: string | null }> => {
     if (!email) return { employee: null, error: "No email on session" };
-    console.log("[useAuth] fetching employee for:", email);
     const { data, error } = await supabase
       .from("employee_profiles")
       .select("id, employee_code, name, email, role, status")
       .ilike("email", email)
       .maybeSingle();
 
-    console.log("[useAuth] employee result:", { data, error });
-
     if (error) return { employee: null, error: error.message };
     if (!data) return { employee: null, error: "Access not configured" };
     if (data.status !== "active") return { employee: null, error: "Account inactive" };
     return { employee: data as EmployeeRecord, error: null };
+  }, []);
+
+  const tryDevAutoSignIn = useCallback(async () => {
+    if (!DEV_BYPASS_AUTH || devBootstrapRan.current) return false;
+    devBootstrapRan.current = true;
+    try {
+      const { data, error } = await supabase.functions.invoke<{ ok: boolean; email: string; password: string; error?: string }>(
+        "dev-admin-bootstrap",
+        { body: {} },
+      );
+      if (error || !data?.ok || !data.email || !data.password) {
+        console.warn("[useAuth] dev-admin-bootstrap failed:", error?.message ?? data?.error);
+        return false;
+      }
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      if (signInErr) {
+        console.warn("[useAuth] dev sign-in failed:", signInErr.message);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn("[useAuth] dev bootstrap exception:", e);
+      return false;
+    }
   }, []);
 
   useEffect(() => {
@@ -57,19 +83,26 @@ export function useAuth() {
       }
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { employee, error } = await fetchEmployee(session.user.email);
         setState({ user: session.user, session, employee, loading: false, accessError: error });
-      } else {
+        return;
+      }
+      // No session — try dev auto-sign-in if enabled
+      const ok = await tryDevAutoSignIn();
+      if (!ok) {
         setState(s => ({ ...s, loading: false }));
       }
-    });
+      // If ok=true, onAuthStateChange will fire and update state
+    })();
 
     return () => subscription.unsubscribe();
-  }, [fetchEmployee]);
+  }, [fetchEmployee, tryDevAutoSignIn]);
 
   const signOut = useCallback(async () => {
+    devBootstrapRan.current = true; // prevent immediate re-bootstrap on sign-out
     await supabase.auth.signOut();
   }, []);
 
@@ -85,7 +118,6 @@ export function useAuth() {
     [state.employee]
   );
 
-  // Backwards-compatible "profile" shape for existing consumers
   const profile = state.employee
     ? { full_name: state.employee.name, email: state.employee.email ?? "", avatar_url: null }
     : null;

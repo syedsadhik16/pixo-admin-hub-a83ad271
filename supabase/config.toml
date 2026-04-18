@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.create-staff-user]
 verify_jwt = false
+
+[functions.dev-admin-bootstrap]
+verify_jwt = false

@@ -23,9 +23,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy } from "lucide-react";
+import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { exportAndDownload } from "@/lib/admin/csv";
 
 interface EmployeeRow {
   id: string;
@@ -178,6 +179,33 @@ export default function EmployeesPage() {
     <AdminLayout title="People & Admissions" subtitle="Staff registry & operational controls">
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-end flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1.5"
+            disabled={!employees || employees.length === 0}
+            onClick={async () => {
+              if (!employees) return;
+              await exportAndDownload(
+                `pixo-employees-${new Date().toISOString().slice(0, 10)}`,
+                employees,
+                [
+                  { key: "employee_code", label: "Code" },
+                  { key: "name", label: "Name" },
+                  { key: "email", label: "Email" },
+                  { key: "phone", label: "Phone" },
+                  { key: "role", label: "Role" },
+                  { key: "status", label: "Status" },
+                  { key: "joining_date", label: "Joining Date" },
+                  { key: "created_at", label: "Created" },
+                ],
+                "employees",
+              );
+              toast.success("CSV exported");
+            }}
+          >
+            <Download className="h-3.5 w-3.5" />Export CSV
+          </Button>
           <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="text-xs gap-1.5"><UserPlus className="h-3.5 w-3.5" />Create Staff User</Button>

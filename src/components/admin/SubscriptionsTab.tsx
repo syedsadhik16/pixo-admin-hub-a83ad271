@@ -8,7 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { EmptyState } from "./EmptyState";
-import { Search, CreditCard } from "lucide-react";
+import { Search, CreditCard, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportAndDownload } from "@/lib/admin/csv";
+import { toast } from "sonner";
 
 type PlanFilter = "all" | "free" | "premium" | "trial" | "expired";
 
@@ -120,6 +123,36 @@ export function SubscriptionsTab() {
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={filtered.length === 0}
+              onClick={async () => {
+                await exportAndDownload(
+                  `pixo-subscriptions-${new Date().toISOString().slice(0, 10)}`,
+                  filtered.map(r => ({
+                    ...r,
+                    parents: r.parentNames.join("; "),
+                  })),
+                  [
+                    { key: "studentName", label: "Student" },
+                    { key: "parents" as never, label: "Linked Parents" },
+                    { key: "plan", label: "Plan" },
+                    { key: "paymentStatus", label: "Payment Status" },
+                    { key: "entitlementActive", label: "Entitlement Active" },
+                    { key: "validUntil", label: "Valid Until" },
+                    { key: "daysToRenewal", label: "Days To Renewal" },
+                    { key: "user_id", label: "User ID" },
+                  ],
+                  "subscriptions",
+                  { search, filter },
+                );
+                toast.success("Subscriptions CSV exported");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />Export CSV
+            </Button>
           </div>
         </div>
       </CardHeader>
