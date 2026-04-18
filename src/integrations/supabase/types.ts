@@ -414,6 +414,63 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_events: {
+        Row: {
+          app_source: string | null
+          browser: string | null
+          created_at: string
+          device_type: string | null
+          email: string | null
+          event_type: string
+          failure_reason: string | null
+          id: string
+          ip_address: string | null
+          meta: Json
+          phone: string | null
+          role_attempted: string | null
+          route: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_source?: string | null
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string | null
+          event_type: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          meta?: Json
+          phone?: string | null
+          role_attempted?: string | null
+          route?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_source?: string | null
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string | null
+          event_type?: string
+          failure_reason?: string | null
+          id?: string
+          ip_address?: string | null
+          meta?: Json
+          phone?: string | null
+          role_attempted?: string | null
+          route?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       lead_notes: {
         Row: {
           author_user_id: string | null
@@ -1128,6 +1185,16 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      upsert_lead_pipeline: {
+        Args: {
+          _payment_page_visited?: boolean
+          _pricing_page_visited?: boolean
+          _remarks?: string
+          _stage: string
+          _user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role:
