@@ -32,11 +32,14 @@ export function useAuth() {
 
   const fetchEmployee = useCallback(async (email: string | undefined): Promise<{ employee: EmployeeRecord | null; error: string | null }> => {
     if (!email) return { employee: null, error: "No email on session" };
+    console.log("[useAuth] fetching employee for:", email);
     const { data, error } = await supabase
       .from("employee_profiles")
       .select("id, employee_code, name, email, role, status")
-      .eq("email", email)
+      .ilike("email", email)
       .maybeSingle();
+
+    console.log("[useAuth] employee result:", { data, error });
 
     if (error) return { employee: null, error: error.message };
     if (!data) return { employee: null, error: "Access not configured" };
