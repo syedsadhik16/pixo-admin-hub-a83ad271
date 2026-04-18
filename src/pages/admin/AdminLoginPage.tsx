@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("admin@pixolearn.com");
@@ -16,6 +17,24 @@ export default function AdminLoginPage() {
   const navigate = useNavigate();
   const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  // 🔓 Dev bypass: skip the login screen entirely.
+  useEffect(() => {
+    if (DEV_BYPASS_AUTH) {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
+  if (DEV_BYPASS_AUTH) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pixo-surface">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Entering admin…</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,15 +59,12 @@ export default function AdminLoginPage() {
     }
 
     const sessionEmail = data.user?.email?.toLowerCase() || normalizedEmail;
-    console.log("[AdminLogin] session.user.email:", sessionEmail);
 
     const { data: emp, error: empErr } = await supabase
       .from("employee_profiles")
       .select("id, role, status, email")
       .ilike("email", sessionEmail)
       .maybeSingle();
-
-    console.log("[AdminLogin] employee_profiles result:", emp);
 
     if (empErr) {
       await supabase.auth.signOut();
@@ -83,7 +99,6 @@ export default function AdminLoginPage() {
     setLoading(false);
   };
 
-  // 🔹 Forgot Password
   const handleForgotPassword = async () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/admin/reset-password`,
@@ -110,16 +125,13 @@ export default function AdminLoginPage() {
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* EMAIL */}
             <div className="space-y-2">
               <Label>Email</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
 
-            {/* PASSWORD + 👁 */}
             <div className="space-y-2">
               <Label>Password</Label>
-
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -128,7 +140,6 @@ export default function AdminLoginPage() {
                   required
                   className="pr-10"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -143,14 +154,12 @@ export default function AdminLoginPage() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
 
-            {/* 🔹 Forgot password */}
             <div className="text-center text-sm">
               <button type="button" onClick={handleForgotPassword} className="text-primary underline">
                 Forgot password?
               </button>
             </div>
 
-            {/* Debug hint */}
             <div className="text-xs text-gray-400 text-center">Default admin email: admin@pixolearn.com</div>
           </form>
         </CardContent>

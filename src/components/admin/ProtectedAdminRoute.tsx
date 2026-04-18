@@ -1,9 +1,15 @@
 import { forwardRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
 
 export const ProtectedAdminRoute = forwardRef<HTMLDivElement, { children: React.ReactNode }>(
   function ProtectedAdminRoute({ children }, _ref) {
+    // 🔓 Dev bypass: skip all auth checks while flag is on.
+    if (DEV_BYPASS_AUTH) {
+      return <>{children}</>;
+    }
+
     const { user, loading, isAdmin, accessError } = useAuthContext();
 
     if (loading) {
