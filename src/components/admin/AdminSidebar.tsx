@@ -106,6 +106,13 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel className="font-mono-label text-sidebar-foreground/40">Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>{renderItems(operationsItems)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="font-mono-label text-sidebar-foreground/40">Curriculum & AI</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>{renderItems(curriculumItems)}</SidebarMenu>

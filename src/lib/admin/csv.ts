@@ -46,13 +46,13 @@ export async function logExport(opts: {
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  await supabase.from("exports_audit").insert({
+  await supabase.from("exports_audit").insert([{
     actor_user_id: user.id,
     export_type: opts.exportType,
     row_count: opts.rowCount,
     filters: opts.filters ?? {},
     destination: opts.destination ?? "csv",
-  });
+  }]);
 }
 
 export async function exportAndDownload<T extends Record<string, unknown>>(
