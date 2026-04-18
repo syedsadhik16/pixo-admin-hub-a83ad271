@@ -141,16 +141,16 @@ export default function AdminDashboardPage() {
               <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
               <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
             </div>
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
+            </div>
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+            </div>
+            <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
           </div>
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
-          </div>
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
-          </div>
-          <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
         </div>
 
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
@@ -306,7 +306,12 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="students"><StudentsTab /></TabsContent>
+        <TabsContent value="parents"><ParentsTab /></TabsContent>
+        <TabsContent value="subscriptions"><SubscriptionsTab /></TabsContent>
+      </Tabs>
     </AdminLayout>
   );
 }
