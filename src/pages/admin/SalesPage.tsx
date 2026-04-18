@@ -366,6 +366,7 @@ export default function SalesPage() {
         </div>
 
         <Card>
+          <Tabs value={tab} onValueChange={setTab}>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <TabsList>
@@ -610,6 +611,7 @@ export default function SalesPage() {
               </>
             )}
           </CardContent>
+          </Tabs>
         </Card>
       </div>
     </AdminLayout>
