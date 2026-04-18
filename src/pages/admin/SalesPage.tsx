@@ -605,6 +605,7 @@ export default function SalesPage() {
                           <TableHead className="font-mono-label text-right">Revenue</TableHead>
                           <TableHead className="font-mono-label text-right">Commission</TableHead>
                           <TableHead className="font-mono-label text-right">Conversion</TableHead>
+                          <TableHead className="font-mono-label">30-day Trend</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -619,6 +620,9 @@ export default function SalesPage() {
                             <TableCell className="text-xs text-right font-mono">₹{r.revenue.toLocaleString("en-IN")}</TableCell>
                             <TableCell className="text-xs text-right font-mono">₹{r.commission.toLocaleString("en-IN")}</TableCell>
                             <TableCell className="text-xs text-right">{r.conversion}</TableCell>
+                            <TableCell>
+                              <Sparkline data={sparklineByEmp.get(r.employee_id) ?? []} color="hsl(var(--primary))" />
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
