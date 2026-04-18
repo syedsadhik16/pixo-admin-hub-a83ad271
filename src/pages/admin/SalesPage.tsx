@@ -226,7 +226,8 @@ export default function SalesPage() {
     toast.success("CSV exported");
   }
 
-  const isLoading = employeesQ.isLoading || txnsQ.isLoading;
+  const queryError = (employeesQ.error as Error | null) || (txnsQ.error as Error | null);
+  const initialLoading = (employeesQ.isLoading && !employeesQ.data) || (txnsQ.isLoading && !txnsQ.data);
 
   return (
     <AdminLayout title="Sales & Commission" subtitle="Employee revenue tracking and commission engine">
