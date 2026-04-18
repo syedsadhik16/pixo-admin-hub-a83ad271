@@ -14,9 +14,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, IndianRupee, Trophy, Download, Award } from "lucide-react";
+import { Users, UserPlus, IndianRupee, Trophy, Download, Award, BarChart3, PieChart as PieIcon } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RTooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--pixo-purple, 270 91% 65%))",
+  "hsl(var(--pixo-amber, 38 92% 50%))",
+  "hsl(var(--pixo-green, 142 71% 45%))",
+  "hsl(var(--pixo-red, 0 84% 60%))",
+  "hsl(var(--muted-foreground))",
+];
 
 interface Employee {
   id: string;
