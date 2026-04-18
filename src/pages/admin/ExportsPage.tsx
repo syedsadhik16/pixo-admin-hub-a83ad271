@@ -242,13 +242,22 @@ export default function ExportsPage() {
           ))}
         </div>
 
-        <Card className="border-pixo-amber/20 bg-pixo-amber/[0.02]">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-pixo-amber">Google Sheets Live Sync</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Backend ready. Edge function <code className="font-mono text-[10px] bg-muted px-1 rounded">export-to-sheets</code> is scaffolded but not deployed.
-              To enable: add a <code className="font-mono text-[10px] bg-muted px-1 rounded">GOOGLE_SHEETS_SERVICE_ACCOUNT</code> secret and deploy.
-            </p>
+        <Card className="border-pixo-emerald/20 bg-pixo-emerald/[0.02]">
+          <CardContent className="p-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-pixo-emerald flex items-center gap-2">
+                <SheetIcon className="h-4 w-4" /> Google Sheets Live Sync — Active
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Each export pushes to its own tab in the shared sheet. Click <strong>Sheets</strong> on any card above to sync.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1 shrink-0" onClick={() => {
+              const id = (import.meta.env as any).VITE_GOOGLE_SHEETS_TARGET_ID;
+              window.open(id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : "https://docs.google.com/spreadsheets", "_blank");
+            }}>
+              <ExternalLink className="h-3 w-3" /> Open Sheet
+            </Button>
           </CardContent>
         </Card>
 
