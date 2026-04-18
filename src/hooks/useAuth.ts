@@ -87,19 +87,24 @@ export function useAuth() {
     });
 
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("[useAuth] initial getSession user:", session?.user?.email ?? "(none)");
-      if (session?.user) {
-        const { employee, error } = await fetchEmployee(session.user.email);
-        console.log("[useAuth] initial employee:", employee?.email, "error:", error);
-        setState({ user: session.user, session, employee, loading: false, accessError: error });
-        return;
-      }
-      // No session — try dev auto-sign-in if enabled
-      console.log("[useAuth] no session, attempting dev auto-sign-in");
-      const ok = await tryDevAutoSignIn();
-      console.log("[useAuth] dev auto-sign-in result:", ok);
-      if (!ok) {
+      try {
+        const { data: { session }, error: sessErr } = await supabase.auth.getSession();
+        console.log("[useAuth] initial getSession user:", session?.user?.email ?? "(none)", "err:", sessErr);
+        if (session?.user) {
+          const { employee, error } = await fetchEmployee(session.user.email);
+          console.log("[useAuth] initial employee:", employee?.email, "error:", error);
+          setState({ user: session.user, session, employee, loading: false, accessError: error });
+          return;
+        }
+        // No session — try dev auto-sign-in if enabled
+        console.log("[useAuth] no session, attempting dev auto-sign-in");
+        const ok = await tryDevAutoSignIn();
+        console.log("[useAuth] dev auto-sign-in result:", ok);
+        if (!ok) {
+          setState(s => ({ ...s, loading: false }));
+        }
+      } catch (e) {
+        console.error("[useAuth] init exception:", e);
         setState(s => ({ ...s, loading: false }));
       }
       // If ok=true, onAuthStateChange will fire and update state
