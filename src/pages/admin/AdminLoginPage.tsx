@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,17 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("admin@pixolearn.test");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
     });
 
@@ -29,21 +33,20 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const sessionEmail = data.user?.email ?? email;
+    const sessionEmail = data.user?.email?.toLowerCase() || normalizedEmail;
     console.log("[AdminLogin] session.user.email:", sessionEmail);
 
-    // Validate against employee_profiles (case-insensitive)
     const { data: emp, error: empErr } = await supabase
       .from("employee_profiles")
       .select("id, role, status, email")
       .ilike("email", sessionEmail)
       .maybeSingle();
 
-    console.log("[AdminLogin] employee_profiles query result:", { emp, empErr });
+    console.log("[AdminLogin] employee_profiles result:", emp);
 
     if (empErr) {
       await supabase.auth.signOut();
-      toast.error(`Lookup failed: ${empErr.message}`);
+      toast.error(empErr.message);
       setLoading(false);
       return;
     }
@@ -64,14 +67,28 @@ export default function AdminLoginPage() {
 
     if (emp.role !== "admin") {
       await supabase.auth.signOut();
-      toast.error("Access denied. Admin role required.");
+      toast.error("Admin access required");
       setLoading(false);
       return;
     }
 
-    toast.success("Welcome back!");
+    toast.success("Login success 🚀");
     navigate("/admin/dashboard");
     setLoading(false);
+  };
+
+  // 🔹 Forgot Password
+  const handleForgotPassword = async () => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/admin/reset-password`,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Password reset email sent");
   };
 
   return (
@@ -84,19 +101,51 @@ export default function AdminLoginPage() {
           <CardTitle className="text-xl">PIXO Admin Panel</CardTitle>
           <CardDescription>Sign in with your admin credentials</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
+            {/* EMAIL */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@pixo.ai" />
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
+
+            {/* PASSWORD + 👁 */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" />
+              <Label>Password</Label>
+
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-gray-500"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
+
+            {/* 🔹 Forgot password */}
+            <div className="text-center text-sm">
+              <button type="button" onClick={handleForgotPassword} className="text-primary underline">
+                Forgot password?
+              </button>
+            </div>
+
+            {/* Debug hint */}
+            <div className="text-xs text-gray-400 text-center">Check console → email + employee result</div>
           </form>
         </CardContent>
       </Card>
