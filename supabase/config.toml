@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.dev-admin-bootstrap]
 verify_jwt = false
+
+[functions.auto-drop-stale-leads]
+verify_jwt = false
