@@ -373,7 +373,13 @@ export default function SalesPage() {
           </CardHeader>
 
           <CardContent>
-            {isLoading ? <LoadingSpinner /> : (
+            {queryError && (
+              <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="font-semibold mb-1">Failed to load data</div>
+                <div className="font-mono break-all">{queryError.message}</div>
+              </div>
+            )}
+            {initialLoading && !queryError ? <LoadingSpinner /> : (
               <>
                 <TabsContent value="performance" forceMount={tab === "performance" ? true : undefined} hidden={tab !== "performance"}>
                   {performanceRows.length === 0 ? (
