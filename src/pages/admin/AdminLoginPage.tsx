@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
+import { trackLeadEvent } from "@/lib/leadTracking";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("admin@pixolearn.com");
@@ -44,6 +45,14 @@ export default function AdminLoginPage() {
     console.log("[AdminLogin] project:", { projectRef, supabaseUrl });
     console.log("[AdminLogin] login email:", normalizedEmail);
 
+    // Track the attempt up-front so failures are also captured.
+    trackLeadEvent({
+      event_type: "login_attempt",
+      email: normalizedEmail,
+      role_attempted: "admin",
+      route: "/admin/login",
+    });
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
@@ -53,6 +62,14 @@ export default function AdminLoginPage() {
 
     if (error) {
       console.error("[AdminLogin] auth error:", error);
+      trackLeadEvent({
+        event_type: "login_failed",
+        email: normalizedEmail,
+        role_attempted: "admin",
+        success: false,
+        failure_reason: error.message,
+        route: "/admin/login",
+      });
       toast.error(error.message || "Invalid login credentials");
       setLoading(false);
       return;
@@ -93,6 +110,15 @@ export default function AdminLoginPage() {
       setLoading(false);
       return;
     }
+
+    trackLeadEvent({
+      event_type: "login_success",
+      email: sessionEmail,
+      user_id: data.user?.id ?? null,
+      role_attempted: "admin",
+      success: true,
+      route: "/admin/login",
+    });
 
     toast.success("Login success 🚀");
     navigate("/admin/dashboard");
