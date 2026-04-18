@@ -14,17 +14,23 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     const normalizedEmail = email.trim().toLowerCase();
+    console.log("[AdminLogin] project:", { projectRef, supabaseUrl });
+    console.log("[AdminLogin] login email:", normalizedEmail);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
     });
+
+    console.log("[AdminLogin] auth response:", data);
 
     if (error) {
       console.error("[AdminLogin] auth error:", error);
@@ -145,7 +151,7 @@ export default function AdminLoginPage() {
             </div>
 
             {/* Debug hint */}
-            <div className="text-xs text-gray-400 text-center">Check console → email + employee result</div>
+            <div className="text-xs text-gray-400 text-center">Default admin email: admin@pixolearn.com</div>
           </form>
         </CardContent>
       </Card>
