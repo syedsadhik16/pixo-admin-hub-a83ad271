@@ -55,8 +55,7 @@ export default function B2BPage() {
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["b2b-orgs"],
     queryFn: async (): Promise<Org[]> => {
-      const { data, error } = await supabase
-        .from("b2b_organizations" as any)
+      const { data, error } = await (supabase.from("b2b_organizations" as any) as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -68,10 +67,9 @@ export default function B2BPage() {
     queryKey: ["b2b-members", selectedOrgId],
     enabled: !!selectedOrgId,
     queryFn: async (): Promise<Member[]> => {
-      const { data: students } = await supabase
-        .from("student_profiles")
+      const { data: students } = await (supabase.from("student_profiles") as any)
         .select("user_id, grade, current_level")
-        .eq("b2b_org_id" as any, selectedOrgId!);
+        .eq("b2b_org_id", selectedOrgId!);
       const ids = (students ?? []).map((s: any) => s.user_id);
       if (ids.length === 0) return [];
       const { data: profs } = await supabase
