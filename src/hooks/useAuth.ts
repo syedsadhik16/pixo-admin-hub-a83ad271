@@ -74,9 +74,12 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    console.log("[useAuth] mount, DEV_BYPASS_AUTH=", DEV_BYPASS_AUTH);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[useAuth] onAuthStateChange:", event, "user:", session?.user?.email);
       if (session?.user) {
         const { employee, error } = await fetchEmployee(session.user.email);
+        console.log("[useAuth] employee fetched:", employee?.email, "error:", error);
         setState({ user: session.user, session, employee, loading: false, accessError: error });
       } else {
         setState({ user: null, session: null, employee: null, loading: false, accessError: null });
@@ -85,13 +88,17 @@ export function useAuth() {
 
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("[useAuth] initial getSession user:", session?.user?.email ?? "(none)");
       if (session?.user) {
         const { employee, error } = await fetchEmployee(session.user.email);
+        console.log("[useAuth] initial employee:", employee?.email, "error:", error);
         setState({ user: session.user, session, employee, loading: false, accessError: error });
         return;
       }
       // No session — try dev auto-sign-in if enabled
+      console.log("[useAuth] no session, attempting dev auto-sign-in");
       const ok = await tryDevAutoSignIn();
+      console.log("[useAuth] dev auto-sign-in result:", ok);
       if (!ok) {
         setState(s => ({ ...s, loading: false }));
       }
