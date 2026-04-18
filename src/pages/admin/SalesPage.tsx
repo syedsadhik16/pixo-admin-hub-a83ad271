@@ -366,15 +366,14 @@ export default function SalesPage() {
         </div>
 
         <Card>
+          <Tabs value={tab} onValueChange={setTab}>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <Tabs value={tab} onValueChange={setTab}>
-                <TabsList>
-                  <TabsTrigger value="performance" className="text-xs">Sales Performance</TabsTrigger>
-                  <TabsTrigger value="employees" className="text-xs">Employee List</TabsTrigger>
-                  <TabsTrigger value="transactions" className="text-xs">Transactions</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <TabsList>
+                <TabsTrigger value="performance" className="text-xs">Sales Performance</TabsTrigger>
+                <TabsTrigger value="employees" className="text-xs">Employee List</TabsTrigger>
+                <TabsTrigger value="transactions" className="text-xs">Transactions</TabsTrigger>
+              </TabsList>
               <div className="flex items-center gap-2">
                 <Dialog open={logOpen} onOpenChange={setLogOpen}>
                   <DialogTrigger asChild>
@@ -612,6 +611,7 @@ export default function SalesPage() {
               </>
             )}
           </CardContent>
+          </Tabs>
         </Card>
       </div>
     </AdminLayout>
