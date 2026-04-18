@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("admin@pixolearn.test");
+  const [email, setEmail] = useState("admin@pixolearn.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
