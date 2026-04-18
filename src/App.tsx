@@ -22,6 +22,7 @@ import ProgressPage from "./pages/admin/ProgressPage";
 import ActivityPage from "./pages/admin/ActivityPage";
 import ExportsPage from "./pages/admin/ExportsPage";
 import SalesPage from "./pages/admin/SalesPage";
+import LeadsPage from "./pages/admin/LeadsPage";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/admin/activity" element={<ProtectedAdminRoute><ActivityPage /></ProtectedAdminRoute>} />
             <Route path="/admin/exports" element={<ProtectedAdminRoute><ExportsPage /></ProtectedAdminRoute>} />
             <Route path="/admin/sales" element={<ProtectedAdminRoute><SalesPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/leads" element={<ProtectedAdminRoute><LeadsPage /></ProtectedAdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
