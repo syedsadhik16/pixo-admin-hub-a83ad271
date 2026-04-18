@@ -2,8 +2,12 @@
 // Backend-ready but inert until GOOGLE_SHEETS_SERVICE_ACCOUNT is configured.
 // Invoke with: { exportType: string, rows: any[], sheetId?: string }
 
-import { corsHeaders } from "@supabase/supabase-js/cors";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
