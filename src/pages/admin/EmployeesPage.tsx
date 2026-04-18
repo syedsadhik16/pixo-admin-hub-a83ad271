@@ -23,9 +23,20 @@ export default function EmployeesPage() {
   const queryClient = useQueryClient();
   const { user, isFounder } = useAuthContext();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"founder" | "admin">(isFounder() ? "founder" : "admin");
   const [jsonView, setJsonView] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", staff_role: "staff_support", department: "" });
+  const [createForm, setCreateForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    employee_code: "",
+    role: "admin",
+    joining_date: "",
+    status: "active",
+    password: "",
+  });
 
   const { data: staff, isLoading } = useQuery({
     queryKey: ["admin-staff"],
