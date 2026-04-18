@@ -8,12 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Download, FileSpreadsheet, History } from "lucide-react";
+import { Download, FileSpreadsheet, History, Sheet as SheetIcon, ExternalLink } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
 export default function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
+  const [pushing, setPushing] = useState<string | null>(null);
 
   const { data: history, refetch } = useQuery({
     queryKey: ["admin-exports-audit"],
@@ -37,6 +38,30 @@ export default function ExportsPage() {
       toast.error(e.message ?? "Export failed");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function pushToSheets(type: string, fn: () => Promise<{ rows: any[]; columns: any[] }>) {
+    setPushing(type);
+    try {
+      const { rows, columns } = await fn();
+      const { data, error } = await supabase.functions.invoke("export-to-sheets", {
+        body: { exportType: type, columns, rows },
+      });
+      if (error) throw error;
+      if (data?.status === "not_configured") {
+        toast.error("Google Sheets not configured. Add the secrets and try again.");
+        return;
+      }
+      if (!data?.ok) throw new Error(data?.error ?? "Push failed");
+      toast.success(`Pushed ${data.rowCount} rows to "${data.sheetTitle}"`, {
+        action: data.url ? { label: "Open", onClick: () => window.open(data.url, "_blank") } : undefined,
+      });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Push to Sheets failed");
+    } finally {
+      setPushing(null);
     }
   }
 
@@ -198,14 +223,20 @@ export default function ExportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <FileSpreadsheet className="h-5 w-5 text-pixo-blue" />
-                  <Badge variant="outline" className="text-[9px]">CSV</Badge>
+                  <Badge variant="outline" className="text-[9px]">CSV · Sheets</Badge>
                 </div>
                 <p className="text-sm font-medium">{x.title}</p>
                 <p className="text-xs text-muted-foreground mt-1 mb-3">{x.description}</p>
-                <Button size="sm" className="w-full h-8 text-xs gap-1" disabled={busy === x.key} onClick={() => runExport(x.key, x.run)}>
-                  <Download className="h-3 w-3" />
-                  {busy === x.key ? "Exporting..." : "Download"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1" disabled={busy === x.key} onClick={() => runExport(x.key, x.run)}>
+                    <Download className="h-3 w-3" />
+                    {busy === x.key ? "..." : "CSV"}
+                  </Button>
+                  <Button size="sm" className="flex-1 h-8 text-xs gap-1" disabled={pushing === x.key} onClick={() => pushToSheets(x.key, x.run)}>
+                    <SheetIcon className="h-3 w-3" />
+                    {pushing === x.key ? "..." : "Sheets"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
