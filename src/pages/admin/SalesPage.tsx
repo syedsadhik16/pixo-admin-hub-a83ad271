@@ -63,18 +63,22 @@ export default function SalesPage() {
     queryKey: ["sales-employees"],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("employee_profiles").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to load employees");
       return (data ?? []) as Employee[];
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   const txnsQ = useQuery({
     queryKey: ["sales-txns"],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("sales_transactions").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to load sales transactions");
       return (data ?? []) as SalesTxn[];
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   const addEmployee = useMutation({
