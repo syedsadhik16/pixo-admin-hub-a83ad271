@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, IndianRupee, Trophy, Download, Award, BarChart3, PieChart as PieIcon } from "lucide-react";
+import { Users, UserPlus, IndianRupee, Trophy, Download, Award, BarChart3, PieChart as PieIcon, CalendarRange } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
+import { Sparkline } from "@/components/admin/Sparkline";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
@@ -186,6 +187,7 @@ export default function SalesPage() {
       const s = stats.perEmp.get(e.id) ?? { sales: 0, revenue: 0, commission: 0 };
       const conversion = s.sales > 0 ? "—" : "0%"; // Conversion needs leads-assigned data; placeholder
       return {
+        employee_id: e.id,
         employee_code: e.employee_code,
         name: e.name,
         role: e.role,
@@ -197,6 +199,61 @@ export default function SalesPage() {
       };
     }).sort((a, b) => b.revenue - a.revenue);
   }, [employeesQ.data, stats]);
+
+  // Per-employee 30-day daily revenue series (for in-row sparkline)
+  const sparklineByEmp = useMemo(() => {
+    const map = new Map<string, { day: string; value: number }[]>();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - 29);
+    // Build 30-day skeleton
+    const days: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(cutoff);
+      d.setDate(d.getDate() + i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    (employeesQ.data ?? []).forEach(e => {
+      map.set(e.id, days.map(day => ({ day, value: 0 })));
+    });
+    (txnsQ.data ?? []).forEach(t => {
+      const d = new Date(t.created_at);
+      if (d < cutoff) return;
+      const key = t.created_at.slice(0, 10);
+      const series = map.get(t.employee_id);
+      if (!series) return;
+      const idx = days.indexOf(key);
+      if (idx >= 0) series[idx].value += Number(t.plan_amount);
+    });
+    return map;
+  }, [employeesQ.data, txnsQ.data]);
+
+  // Monthly commission summary (current month + previous month)
+  const monthlySummary = useMemo(() => {
+    const now = new Date();
+    const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = curMonthStart;
+    let curRev = 0, curComm = 0, curSales = 0;
+    let prevRev = 0, prevComm = 0, prevSales = 0;
+    (txnsQ.data ?? []).forEach(t => {
+      const d = new Date(t.created_at);
+      if (d >= curMonthStart) {
+        curRev += Number(t.plan_amount);
+        curComm += Number(t.commission_amount);
+        curSales += 1;
+      } else if (d >= prevMonthStart && d < prevMonthEnd) {
+        prevRev += Number(t.plan_amount);
+        prevComm += Number(t.commission_amount);
+        prevSales += 1;
+      }
+    });
+    const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });
+    const prevLabel = prevMonthStart.toLocaleString("en-US", { month: "long", year: "numeric" });
+    const delta = prevComm > 0 ? ((curComm - prevComm) / prevComm) * 100 : null;
+    return { curRev, curComm, curSales, prevRev, prevComm, prevSales, monthLabel, prevLabel, delta };
+  }, [txnsQ.data]);
 
   const planNames = useMemo(() => {
     const set = new Set<string>();
