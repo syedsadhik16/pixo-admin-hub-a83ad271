@@ -17,20 +17,29 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     if (error) {
-      toast.error(error.message);
+      console.error("[AdminLogin] auth error:", error);
+      toast.error(error.message || "Invalid login credentials");
       setLoading(false);
       return;
     }
 
-    // Validate against employee_profiles
+    const sessionEmail = data.user?.email ?? email;
+    console.log("[AdminLogin] session.user.email:", sessionEmail);
+
+    // Validate against employee_profiles (case-insensitive)
     const { data: emp, error: empErr } = await supabase
       .from("employee_profiles")
-      .select("id, role, status")
-      .eq("email", data.user.email!)
+      .select("id, role, status, email")
+      .ilike("email", sessionEmail)
       .maybeSingle();
+
+    console.log("[AdminLogin] employee_profiles query result:", { emp, empErr });
 
     if (empErr) {
       await supabase.auth.signOut();
