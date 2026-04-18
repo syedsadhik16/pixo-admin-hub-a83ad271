@@ -8,12 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Download, FileSpreadsheet, History } from "lucide-react";
+import { Download, FileSpreadsheet, History, Sheet as SheetIcon, ExternalLink } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
 export default function ExportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
+  const [pushing, setPushing] = useState<string | null>(null);
 
   const { data: history, refetch } = useQuery({
     queryKey: ["admin-exports-audit"],
@@ -37,6 +38,30 @@ export default function ExportsPage() {
       toast.error(e.message ?? "Export failed");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function pushToSheets(type: string, fn: () => Promise<{ rows: any[]; columns: any[] }>) {
+    setPushing(type);
+    try {
+      const { rows, columns } = await fn();
+      const { data, error } = await supabase.functions.invoke("export-to-sheets", {
+        body: { exportType: type, columns, rows },
+      });
+      if (error) throw error;
+      if (data?.status === "not_configured") {
+        toast.error("Google Sheets not configured. Add the secrets and try again.");
+        return;
+      }
+      if (!data?.ok) throw new Error(data?.error ?? "Push failed");
+      toast.success(`Pushed ${data.rowCount} rows to "${data.sheetTitle}"`, {
+        action: data.url ? { label: "Open", onClick: () => window.open(data.url, "_blank") } : undefined,
+      });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Push to Sheets failed");
+    } finally {
+      setPushing(null);
     }
   }
 
@@ -198,26 +223,41 @@ export default function ExportsPage() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <FileSpreadsheet className="h-5 w-5 text-pixo-blue" />
-                  <Badge variant="outline" className="text-[9px]">CSV</Badge>
+                  <Badge variant="outline" className="text-[9px]">CSV · Sheets</Badge>
                 </div>
                 <p className="text-sm font-medium">{x.title}</p>
                 <p className="text-xs text-muted-foreground mt-1 mb-3">{x.description}</p>
-                <Button size="sm" className="w-full h-8 text-xs gap-1" disabled={busy === x.key} onClick={() => runExport(x.key, x.run)}>
-                  <Download className="h-3 w-3" />
-                  {busy === x.key ? "Exporting..." : "Download"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1" disabled={busy === x.key} onClick={() => runExport(x.key, x.run)}>
+                    <Download className="h-3 w-3" />
+                    {busy === x.key ? "..." : "CSV"}
+                  </Button>
+                  <Button size="sm" className="flex-1 h-8 text-xs gap-1" disabled={pushing === x.key} onClick={() => pushToSheets(x.key, x.run)}>
+                    <SheetIcon className="h-3 w-3" />
+                    {pushing === x.key ? "..." : "Sheets"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card className="border-pixo-amber/20 bg-pixo-amber/[0.02]">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-pixo-amber">Google Sheets Live Sync</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Backend ready. Edge function <code className="font-mono text-[10px] bg-muted px-1 rounded">export-to-sheets</code> is scaffolded but not deployed.
-              To enable: add a <code className="font-mono text-[10px] bg-muted px-1 rounded">GOOGLE_SHEETS_SERVICE_ACCOUNT</code> secret and deploy.
-            </p>
+        <Card className="border-pixo-emerald/20 bg-pixo-emerald/[0.02]">
+          <CardContent className="p-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-pixo-emerald flex items-center gap-2">
+                <SheetIcon className="h-4 w-4" /> Google Sheets Live Sync — Active
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Each export pushes to its own tab in the shared sheet. Click <strong>Sheets</strong> on any card above to sync.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1 shrink-0" onClick={() => {
+              const id = (import.meta.env as any).VITE_GOOGLE_SHEETS_TARGET_ID;
+              window.open(id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : "https://docs.google.com/spreadsheets", "_blank");
+            }}>
+              <ExternalLink className="h-3 w-3" /> Open Sheet
+            </Button>
           </CardContent>
         </Card>
 
