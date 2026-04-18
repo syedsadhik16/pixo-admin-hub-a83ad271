@@ -180,21 +180,29 @@ export default function AdminDashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
-            </div>
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
-            </div>
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
-            </div>
-            <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <MetricCard title="Total Users" value={overview?.totalUsers ?? 0} change="All signups" changeType="neutral" icon={Users} />
+            <MetricCard title="Students" value={overview?.totalStudents ?? 0} change="Learner profiles" changeType="neutral" icon={Users} />
+            <MetricCard title="Parents" value={overview?.totalParents ?? 0} change={`${overview?.linkedParents ?? 0} linked`} changeType="neutral" icon={Heart} />
+            <MetricCard title="Subscribed" value={overview?.subscribed ?? 0} change={`${overview?.trial ?? 0} trial`} changeType="positive" icon={CheckCircle2} />
+            <MetricCard title="Expired" value={overview?.expired ?? 0} change="Need renewal" changeType="negative" icon={Clock} />
+            <MetricCard title="Leads" value={leadCount ?? 0} change="In CRM" changeType="neutral" icon={Target} />
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conv`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
+            </div>
+            <MetricCard title="Successful Pmts" value={overview?.paidTx ?? 0} change={`of ${overview?.totalTx ?? 0}`} changeType="positive" icon={CreditCard} />
+            <MetricCard title="Failed Pmts" value={overview?.failedTx ?? 0} change="Recoverable" changeType="negative" icon={XCircle} />
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Active students" : "No data"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+            </div>
+            <MetricCard title="Today Logins" value="—" change="Backend ready" changeType="neutral" icon={Zap} />
+            <MetricCard title="Active Today" value="—" change="Backend ready" changeType="neutral" icon={Activity} />
+          </div>
+
 
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
           <CardHeader className="pb-2">
