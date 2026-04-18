@@ -102,8 +102,6 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [fetchEmployee, tryDevAutoSignIn]);
 
-    return () => subscription.unsubscribe();
-  }, [fetchEmployee, tryDevAutoSignIn]);
 
   const signOut = useCallback(async () => {
     devBootstrapRan.current = true; // prevent immediate re-bootstrap on sign-out
