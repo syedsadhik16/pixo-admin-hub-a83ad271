@@ -335,6 +335,35 @@ export default function SalesPage() {
           <MetricCard title="Top Performer" value={stats.topName} change={stats.topRev ? `₹${stats.topRev.toLocaleString("en-IN")}` : ""} icon={Trophy} changeType="positive" />
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            title={`${monthlySummary.monthLabel} Revenue`}
+            value={`₹${monthlySummary.curRev.toLocaleString("en-IN")}`}
+            change={`${monthlySummary.curSales} sales`}
+            icon={CalendarRange}
+            mono
+          />
+          <MetricCard
+            title={`${monthlySummary.monthLabel} Commission`}
+            value={`₹${monthlySummary.curComm.toLocaleString("en-IN")}`}
+            change={
+              monthlySummary.delta === null
+                ? `vs ${monthlySummary.prevLabel}: —`
+                : `${monthlySummary.delta >= 0 ? "+" : ""}${monthlySummary.delta.toFixed(1)}% vs ${monthlySummary.prevLabel}`
+            }
+            changeType={monthlySummary.delta === null ? "neutral" : monthlySummary.delta >= 0 ? "positive" : "negative"}
+            icon={Award}
+            mono
+          />
+          <MetricCard
+            title={`${monthlySummary.prevLabel} Commission`}
+            value={`₹${monthlySummary.prevComm.toLocaleString("en-IN")}`}
+            change={`${monthlySummary.prevSales} sales · ₹${monthlySummary.prevRev.toLocaleString("en-IN")} revenue`}
+            icon={CalendarRange}
+            mono
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="lg:col-span-2">
             <CardHeader className="pb-2">
