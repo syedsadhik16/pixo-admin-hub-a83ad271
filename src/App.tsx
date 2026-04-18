@@ -16,6 +16,11 @@ import AIBehaviorPage from "./pages/admin/AIBehaviorPage";
 import UIExperiencePage from "./pages/admin/UIExperiencePage";
 import ParentConnectPage from "./pages/admin/ParentConnectPage";
 import ArchitecturePage from "./pages/admin/ArchitecturePage";
+import CRMPage from "./pages/admin/CRMPage";
+import FunnelPage from "./pages/admin/FunnelPage";
+import ProgressPage from "./pages/admin/ProgressPage";
+import ActivityPage from "./pages/admin/ActivityPage";
+import ExportsPage from "./pages/admin/ExportsPage";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -40,6 +45,11 @@ const App = () => (
             <Route path="/admin/ui-experience" element={<ProtectedAdminRoute><UIExperiencePage /></ProtectedAdminRoute>} />
             <Route path="/admin/parent-connect" element={<ProtectedAdminRoute><ParentConnectPage /></ProtectedAdminRoute>} />
             <Route path="/admin/architecture" element={<ProtectedAdminRoute><ArchitecturePage /></ProtectedAdminRoute>} />
+            <Route path="/admin/crm" element={<ProtectedAdminRoute><CRMPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/funnel" element={<ProtectedAdminRoute><FunnelPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/progress" element={<ProtectedAdminRoute><ProgressPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/activity" element={<ProtectedAdminRoute><ActivityPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/exports" element={<ProtectedAdminRoute><ExportsPage /></ProtectedAdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

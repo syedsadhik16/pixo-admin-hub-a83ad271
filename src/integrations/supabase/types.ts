@@ -315,6 +315,39 @@ export type Database = {
           },
         ]
       }
+      exports_audit: {
+        Row: {
+          actor_user_id: string
+          created_at: string | null
+          destination: string | null
+          export_type: string
+          file_url: string | null
+          filters: Json | null
+          id: string
+          row_count: number | null
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string | null
+          destination?: string | null
+          export_type: string
+          file_url?: string | null
+          filters?: Json | null
+          id?: string
+          row_count?: number | null
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string | null
+          destination?: string | null
+          export_type?: string
+          file_url?: string | null
+          filters?: Json | null
+          id?: string
+          row_count?: number | null
+        }
+        Relationships: []
+      }
       feature_flags: {
         Row: {
           description: string | null
@@ -339,6 +372,72 @@ export type Database = {
           id?: string
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lead_notes: {
+        Row: {
+          author_user_id: string | null
+          created_at: string | null
+          id: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          author_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          author_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lead_pipeline: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_activity_at: string | null
+          next_follow_up_at: string | null
+          owner_user_id: string | null
+          payment_page_visited: boolean | null
+          pricing_page_visited: boolean | null
+          remarks: string | null
+          stage: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          next_follow_up_at?: string | null
+          owner_user_id?: string | null
+          payment_page_visited?: boolean | null
+          pricing_page_visited?: boolean | null
+          remarks?: string | null
+          stage?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string | null
+          next_follow_up_at?: string | null
+          owner_user_id?: string | null
+          payment_page_visited?: boolean | null
+          pricing_page_visited?: boolean | null
+          remarks?: string | null
+          stage?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -447,6 +546,39 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_funnel_events: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          event_type: string
+          failure_reason: string | null
+          id: string
+          meta: Json | null
+          plan_name: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          event_type: string
+          failure_reason?: string | null
+          id?: string
+          meta?: Json | null
+          plan_name?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          event_type?: string
+          failure_reason?: string | null
+          id?: string
+          meta?: Json | null
+          plan_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_orders: {
         Row: {
           amount: number
@@ -533,34 +665,49 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
           is_active: boolean | null
+          last_login_at: string | null
+          location: string | null
           phone: string | null
+          signup_source: string | null
           updated_at: string | null
+          user_type: string | null
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          last_login_at?: string | null
+          location?: string | null
           phone?: string | null
+          signup_source?: string | null
           updated_at?: string | null
+          user_type?: string | null
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          last_login_at?: string | null
+          location?: string | null
           phone?: string | null
+          signup_source?: string | null
           updated_at?: string | null
+          user_type?: string | null
         }
         Relationships: []
       }
@@ -762,6 +909,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_logs: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          id: string
+          meta: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          id?: string
+          meta?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_entitlements: {
         Row: {
           id: string
@@ -798,6 +969,42 @@ export type Database = {
           user_id?: string
           valid_from?: string | null
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      user_login_events: {
+        Row: {
+          app_source: string | null
+          browser: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          logged_in_at: string | null
+          platform: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          app_source?: string | null
+          browser?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          logged_in_at?: string | null
+          platform?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          app_source?: string | null
+          browser?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          logged_in_at?: string | null
+          platform?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }

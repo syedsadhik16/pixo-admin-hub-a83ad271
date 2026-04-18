@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap } from "lucide-react";
+import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap, Heart, CreditCard, Target, XCircle, CheckCircle2, Clock } from "lucide-react";
 import { useState } from "react";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -115,6 +115,50 @@ export default function AdminDashboardPage() {
     },
   });
 
+  const { data: overview } = useQuery({
+    queryKey: ["dash-overview-counts"],
+    queryFn: async () => {
+      const [users, students, parents, links, ents, txAll, txPaid, txFailed] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase.from("student_profiles").select("*", { count: "exact", head: true }),
+        supabase.from("parent_profiles").select("*", { count: "exact", head: true }),
+        supabase.from("parent_children").select("*", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("user_entitlements").select("plan_name, is_active, valid_until"),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }).in("status", ["captured", "success", "paid"]),
+        supabase.from("payment_transactions").select("*", { count: "exact", head: true }).eq("status", "failed"),
+      ]);
+      const now = Date.now();
+      let trial = 0, expired = 0, subscribed = 0;
+      (ents.data ?? []).forEach(e => {
+        const exp = e.valid_until ? new Date(e.valid_until).getTime() : null;
+        if (exp && exp < now) expired++;
+        else if (e.is_active) {
+          subscribed++;
+          if ((e.plan_name ?? "").toLowerCase() === "trial") trial++;
+        }
+      });
+      return {
+        totalUsers: users.count ?? 0,
+        totalStudents: students.count ?? 0,
+        totalParents: parents.count ?? 0,
+        linkedParents: links.count ?? 0,
+        subscribed, trial, expired,
+        totalTx: txAll.count ?? 0,
+        paidTx: txPaid.count ?? 0,
+        failedTx: txFailed.count ?? 0,
+      };
+    },
+  });
+
+  const { data: leadCount } = useQuery({
+    queryKey: ["dash-lead-count"],
+    queryFn: async () => {
+      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      return count ?? 0;
+    },
+  });
+
   const conversion = totalStudents && totalStudents > 0 ? ((paidUsers ?? 0) / totalStudents * 100).toFixed(1) : "0";
 
   const filteredRegistry = (studentRegistry ?? []).filter((s: any) => {
@@ -136,21 +180,29 @@ export default function AdminDashboardPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
-            </div>
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conversion`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
-            </div>
-            <div className="relative">
-              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Across active students" : "No data yet"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
-            </div>
-            <MetricCard title="Active Today" value="—" change="Real-time session tracking" changeType="neutral" icon={Zap} />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <MetricCard title="Total Users" value={overview?.totalUsers ?? 0} change="All signups" changeType="neutral" icon={Users} />
+            <MetricCard title="Students" value={overview?.totalStudents ?? 0} change="Learner profiles" changeType="neutral" icon={Users} />
+            <MetricCard title="Parents" value={overview?.totalParents ?? 0} change={`${overview?.linkedParents ?? 0} linked`} changeType="neutral" icon={Heart} />
+            <MetricCard title="Subscribed" value={overview?.subscribed ?? 0} change={`${overview?.trial ?? 0} trial`} changeType="positive" icon={CheckCircle2} />
+            <MetricCard title="Expired" value={overview?.expired ?? 0} change="Need renewal" changeType="negative" icon={Clock} />
+            <MetricCard title="Leads" value={leadCount ?? 0} change="In CRM" changeType="neutral" icon={Target} />
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Paid Users" value={`${paidUsers ?? 0}`} change={`${conversion}% conv`} changeType={Number(conversion) > 10 ? "positive" : "neutral"} icon={TrendingUp} />
+            </div>
+            <MetricCard title="Successful Pmts" value={overview?.paidTx ?? 0} change={`of ${overview?.totalTx ?? 0}`} changeType="positive" icon={CreditCard} />
+            <MetricCard title="Failed Pmts" value={overview?.failedTx ?? 0} change="Recoverable" changeType="negative" icon={XCircle} />
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Active students" : "No data"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
+            </div>
+            <MetricCard title="Today Logins" value="—" change="Backend ready" changeType="neutral" icon={Zap} />
+            <MetricCard title="Active Today" value="—" change="Backend ready" changeType="neutral" icon={Activity} />
+          </div>
+
 
         <Card className="border-pixo-red/20 bg-pixo-red/[0.02]">
           <CardHeader className="pb-2">
