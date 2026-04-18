@@ -315,6 +315,45 @@ export type Database = {
           },
         ]
       }
+      employee_profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          employee_code: string
+          id: string
+          joining_date: string | null
+          name: string
+          phone: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          employee_code: string
+          id?: string
+          joining_date?: string | null
+          name: string
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          employee_code?: string
+          id?: string
+          joining_date?: string | null
+          name?: string
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exports_audit: {
         Row: {
           actor_user_id: string
@@ -744,6 +783,47 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_transactions: {
+        Row: {
+          commission_amount: number
+          created_at: string
+          employee_id: string
+          id: string
+          order_id: string | null
+          plan_amount: number
+          plan_name: string | null
+          user_id: string
+        }
+        Insert: {
+          commission_amount?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          order_id?: string | null
+          plan_amount?: number
+          plan_name?: string | null
+          user_id: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          order_id?: string | null
+          plan_amount?: number
+          plan_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_transactions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_members: {
         Row: {
           active_status: string | null
@@ -1034,6 +1114,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calc_commission: { Args: { _amount: number }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
