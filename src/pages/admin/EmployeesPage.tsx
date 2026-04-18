@@ -78,6 +78,31 @@ export default function EmployeesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createStaffUser = useMutation({
+    mutationFn: async () => {
+      const { full_name, email, employee_code, password } = createForm;
+      if (!full_name || !email || !employee_code || !password) {
+        throw new Error("Full name, email, employee code, and password are required");
+      }
+      if (password.length < 8) throw new Error("Password must be at least 8 characters");
+
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: createForm,
+      });
+      if (error) throw new Error(error.message ?? "Failed to create user");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-employees"] });
+      toast.success(`Staff user created: ${data?.email ?? createForm.email}`);
+      setCreateUserOpen(false);
+      setCreateForm({ full_name: "", email: "", phone: "", employee_code: "", role: "admin", joining_date: "", status: "active", password: "" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const founderMode = viewMode === "founder" && isFounder();
 
   return (
