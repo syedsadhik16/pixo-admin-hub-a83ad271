@@ -1,6 +1,14 @@
 // Lead & payment-intent tracker.
 // Writes to public.lead_events (RLS allows anon insert) and public.payment_funnel_events.
 // Best-effort: failures are swallowed so UX flows never break on telemetry errors.
+//
+// Stage mapping (server-side trigger lead_events_autobump):
+//   signup                                   → cold
+//   login_attempt | login_success | login_failed → warm
+//   payment_page_view | payment_initiated | payment_failed → hot
+//   payment_success                          → converted
+//
+// Allowed payment_funnel_events.event_type values: page_view | initiated | success | failed.
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -69,6 +77,31 @@ export async function trackLeadEvent(input: LeadEventInput): Promise<void> {
     // Telemetry must never break user flows
     console.warn("[trackLeadEvent] failed:", err);
   }
+}
+
+/** Convenience: call from your signup handler the moment a profile row is created. */
+export function trackSignup(args: { user_id: string; email?: string | null; phone?: string | null; role?: string | null; source?: string | null }) {
+  return trackLeadEvent({
+    event_type: "signup",
+    user_id: args.user_id,
+    email: args.email ?? null,
+    phone: args.phone ?? null,
+    role_attempted: args.role ?? null,
+    success: true,
+    meta: args.source ? { source: args.source } : {},
+  });
+}
+
+/** Call when a logged-in (or anon) user lands on the pricing page. */
+export function trackPricingPageView(args: { user_id?: string | null; email?: string | null }) {
+  // Pricing visit is a soft "hot" signal — we use payment_page_view so the trigger promotes to hot.
+  return trackLeadEvent({
+    event_type: "payment_page_view",
+    user_id: args.user_id ?? null,
+    email: args.email ?? null,
+    route: "/pricing",
+    meta: { kind: "pricing" },
+  });
 }
 
 export interface PaymentFunnelInput {
