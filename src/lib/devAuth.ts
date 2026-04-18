@@ -1,6 +1,5 @@
-// Temporary development bypass for admin auth.
-// Set to `false` to fully restore the original Supabase auth + employee_profiles flow.
-export const DEV_BYPASS_AUTH = true;
+// Dev bypass disabled — use real Supabase auth via /admin/login.
+export const DEV_BYPASS_AUTH = false;
 
 export const DEV_ADMIN_SESSION = {
   email: "admin@pixolearn.com",

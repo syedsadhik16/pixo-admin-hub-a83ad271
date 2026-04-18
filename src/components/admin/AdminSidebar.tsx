@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import {
   BarChart3, CreditCard, Users, BookOpen, Brain, Palette,
   Heart, Server, Shield, Search, LogOut, Zap,
-  Target, Filter, TrendingUp, Activity, Download, IndianRupee, Flame,
+  Target, Filter, TrendingUp, Activity, Download, IndianRupee, Flame, Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -26,6 +26,7 @@ const analyticsItems = [
 const operationsItems = [
   { title: "CRM / Leads", url: "/admin/crm", icon: Target },
   { title: "Leads & Logins", url: "/admin/leads", icon: Flame },
+  { title: "B2B Orgs", url: "/admin/b2b", icon: Building2 },
   { title: "Payment Funnel", url: "/admin/funnel", icon: Filter },
   { title: "Sales & Commission", url: "/admin/sales", icon: IndianRupee },
   { title: "Progress", url: "/admin/progress", icon: TrendingUp },
