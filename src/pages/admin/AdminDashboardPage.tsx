@@ -15,6 +15,10 @@ import { Progress } from "@/components/ui/progress";
 import { Users, TrendingUp, Activity, AlertTriangle, Search, Eye, Zap } from "lucide-react";
 import { useState } from "react";
 import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
+import { StudentsTab } from "@/components/admin/StudentsTab";
+import { ParentsTab } from "@/components/admin/ParentsTab";
 
 export default function AdminDashboardPage() {
   const queryClient = useQueryClient();
