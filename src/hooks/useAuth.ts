@@ -84,22 +84,24 @@ export function useAuth() {
     });
 
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { employee, error } = await fetchEmployee(session.user.email);
-        setState({ user: session.user, session, employee, loading: false, accessError: error });
-        return;
-      }
-      // No session — try dev auto-sign-in if enabled
-      const ok = await tryDevAutoSignIn();
-      if (!ok) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { employee, error } = await fetchEmployee(session.user.email);
+          setState({ user: session.user, session, employee, loading: false, accessError: error });
+          return;
+        }
+        const ok = await tryDevAutoSignIn();
+        if (!ok) setState(s => ({ ...s, loading: false }));
+      } catch (e) {
+        console.error("[useAuth] init exception:", e);
         setState(s => ({ ...s, loading: false }));
       }
-      // If ok=true, onAuthStateChange will fire and update state
     })();
 
     return () => subscription.unsubscribe();
   }, [fetchEmployee, tryDevAutoSignIn]);
+
 
   const signOut = useCallback(async () => {
     devBootstrapRan.current = true; // prevent immediate re-bootstrap on sign-out
