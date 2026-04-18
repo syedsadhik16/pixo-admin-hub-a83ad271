@@ -4,7 +4,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 
 export const ProtectedAdminRoute = forwardRef<HTMLDivElement, { children: React.ReactNode }>(
   function ProtectedAdminRoute({ children }, _ref) {
-    const { user, loading, isAdmin } = useAuthContext();
+    const { user, loading, isAdmin, accessError } = useAuthContext();
 
     if (loading) {
       return (
@@ -18,7 +18,17 @@ export const ProtectedAdminRoute = forwardRef<HTMLDivElement, { children: React.
     }
 
     if (!user) return <Navigate to="/admin/login" replace />;
-    if (!isAdmin()) return <Navigate to="/" replace />;
+    if (!isAdmin()) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-pixo-surface">
+          <div className="max-w-md text-center space-y-3 p-6">
+            <h2 className="text-lg font-semibold">Access denied</h2>
+            <p className="text-sm text-muted-foreground">{accessError ?? "Admin role required."}</p>
+            <Navigate to="/admin/login" replace />
+          </div>
+        </div>
+      );
+    }
 
     return <>{children}</>;
   }

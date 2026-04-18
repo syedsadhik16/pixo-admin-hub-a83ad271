@@ -16,34 +16,52 @@ export default function AdminLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
+
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
 
-    // Check if user has admin role
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id);
+    // Validate against employee_profiles
+    const { data: emp, error: empErr } = await supabase
+      .from("employee_profiles")
+      .select("id, role, status")
+      .eq("email", data.user.email!)
+      .maybeSingle();
 
-    const adminRoles = ["admin", "founder", "staff_support", "staff_sales", "staff_content"];
-    const hasAdmin = roles?.some((r: any) => adminRoles.includes(r.role));
-
-    if (!hasAdmin) {
+    if (empErr) {
       await supabase.auth.signOut();
-      toast.error("Access denied. Admin privileges required.");
+      toast.error(`Lookup failed: ${empErr.message}`);
       setLoading(false);
       return;
     }
 
-    const isFounder = roles?.some((r: any) => r.role === "founder");
+    if (!emp) {
+      await supabase.auth.signOut();
+      toast.error("Access not configured");
+      setLoading(false);
+      return;
+    }
+
+    if (emp.status !== "active") {
+      await supabase.auth.signOut();
+      toast.error("Account inactive");
+      setLoading(false);
+      return;
+    }
+
+    if (emp.role !== "admin") {
+      await supabase.auth.signOut();
+      toast.error("Access denied. Admin role required.");
+      setLoading(false);
+      return;
+    }
+
     toast.success("Welcome back!");
-    navigate(isFounder ? "/admin/founder-hq" : "/admin/dashboard");
+    navigate("/admin/dashboard");
     setLoading(false);
   };
 
@@ -61,7 +79,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@pixolearn.com" />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="admin@pixo.ai" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
