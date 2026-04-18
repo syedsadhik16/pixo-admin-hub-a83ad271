@@ -3,13 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { EmptyState } from "./EmptyState";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Download } from "lucide-react";
+import { exportAndDownload } from "@/lib/admin/csv";
+import { toast } from "sonner";
 
 export function StudentsTab() {
   const [search, setSearch] = useState("");
@@ -39,6 +42,8 @@ export function StudentsTab() {
           name: p?.full_name ?? "—",
           email: p?.email ?? "—",
           level: s.current_level ?? "—",
+          grade: s.grade ?? "—",
+          age: s.age ?? null,
           xp,
           streak: progress?.streak_count ?? 0,
           subscription: ent?.is_active ? (ent.plan_name ?? "active") : "free",
@@ -60,6 +65,30 @@ export function StudentsTab() {
       return true;
     });
   }, [data, levelFilter, search]);
+
+  async function exportCsv() {
+    await exportAndDownload(
+      `pixo-students-${new Date().toISOString().slice(0, 10)}`,
+      filtered,
+      [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "level", label: "Level" },
+        { key: "grade", label: "Grade" },
+        { key: "age", label: "Age" },
+        { key: "xp", label: "XP" },
+        { key: "streak", label: "Streak" },
+        { key: "subscription", label: "Subscription" },
+        { key: "completedDays", label: "Completed Days" },
+        { key: "currentDay", label: "Current Day" },
+        { key: "confidence", label: "Confidence Score" },
+        { key: "user_id", label: "User ID" },
+      ],
+      "students",
+      { search, levelFilter },
+    );
+    toast.success("Students CSV exported");
+  }
 
   return (
     <Card>
@@ -88,6 +117,15 @@ export function StudentsTab() {
                 <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+            >
+              <Download className="h-3.5 w-3.5" />Export CSV
+            </Button>
           </div>
         </div>
       </CardHeader>

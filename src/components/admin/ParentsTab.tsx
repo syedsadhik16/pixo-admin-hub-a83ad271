@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { EmptyState } from "./EmptyState";
-import { Heart } from "lucide-react";
+import { Heart, Download } from "lucide-react";
+import { exportAndDownload } from "@/lib/admin/csv";
+import { toast } from "sonner";
 
 export function ParentsTab() {
   const { data, isLoading } = useQuery({
@@ -37,18 +40,48 @@ export function ParentsTab() {
           relationshipLabel: p.relationship_label ?? "parent",
           childrenCount: children.length,
           children,
+          childrenSummary: children.length === 0 ? "—" : children.map(c => `${c.name} (${c.relation})`).join("; "),
         };
       });
     },
   });
 
+  async function exportCsv() {
+    if (!data) return;
+    await exportAndDownload(
+      `pixo-parents-${new Date().toISOString().slice(0, 10)}`,
+      data,
+      [
+        { key: "name", label: "Parent Name" },
+        { key: "email", label: "Email" },
+        { key: "relationshipLabel", label: "Relationship" },
+        { key: "childrenCount", label: "Linked Children" },
+        { key: "childrenSummary", label: "Children" },
+        { key: "user_id", label: "User ID" },
+      ],
+      "parents",
+    );
+    toast.success("Parents CSV exported");
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Heart className="h-4 w-4" />
-          Parent Registry
-        </CardTitle>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Heart className="h-4 w-4" />
+            Parent Registry
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={exportCsv}
+            disabled={!data || data.length === 0}
+          >
+            <Download className="h-3.5 w-3.5" />Export CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
