@@ -125,6 +125,48 @@ export type Database = {
         }
         Relationships: []
       }
+      b2b_organizations: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          plan: string | null
+          seats: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          plan?: string | null
+          seats?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          plan?: string | null
+          seats?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       curriculum_day_parts: {
         Row: {
           activity_type: string | null
@@ -921,6 +963,7 @@ export type Database = {
         Row: {
           active_plan: string | null
           age: number | null
+          b2b_org_id: string | null
           created_at: string | null
           current_level: string | null
           grade: string | null
@@ -933,6 +976,7 @@ export type Database = {
         Insert: {
           active_plan?: string | null
           age?: number | null
+          b2b_org_id?: string | null
           created_at?: string | null
           current_level?: string | null
           grade?: string | null
@@ -945,6 +989,7 @@ export type Database = {
         Update: {
           active_plan?: string | null
           age?: number | null
+          b2b_org_id?: string | null
           created_at?: string | null
           current_level?: string | null
           grade?: string | null
@@ -954,7 +999,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "student_profiles_b2b_org_id_fkey"
+            columns: ["b2b_org_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_progress: {
         Row: {
