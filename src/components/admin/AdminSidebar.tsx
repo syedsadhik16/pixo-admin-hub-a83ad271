@@ -1,7 +1,8 @@
 import { useLocation } from "react-router-dom";
 import {
   BarChart3, CreditCard, Users, BookOpen, Brain, Palette,
-  Heart, Server, Shield, Search, LogOut, Zap
+  Heart, Server, Shield, Search, LogOut, Zap,
+  Target, Filter, TrendingUp, Activity, Download,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -20,6 +21,14 @@ const analyticsItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: BarChart3 },
   { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Employees", url: "/admin/employees", icon: Users },
+];
+
+const operationsItems = [
+  { title: "CRM / Leads", url: "/admin/crm", icon: Target },
+  { title: "Payment Funnel", url: "/admin/funnel", icon: Filter },
+  { title: "Progress", url: "/admin/progress", icon: TrendingUp },
+  { title: "Activity", url: "/admin/activity", icon: Activity },
+  { title: "Exports", url: "/admin/exports", icon: Download },
 ];
 
 const curriculumItems = [
