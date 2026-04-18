@@ -14,9 +14,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Users, UserPlus, IndianRupee, Trophy, Download, Award } from "lucide-react";
+import { Users, UserPlus, IndianRupee, Trophy, Download, Award, BarChart3, PieChart as PieIcon } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RTooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--pixo-purple, 270 91% 65%))",
+  "hsl(var(--pixo-amber, 38 92% 50%))",
+  "hsl(var(--pixo-green, 142 71% 45%))",
+  "hsl(var(--pixo-red, 0 84% 60%))",
+  "hsl(var(--muted-foreground))",
+];
 
 interface Employee {
   id: string;
@@ -182,6 +204,23 @@ export default function SalesPage() {
     return Array.from(set);
   }, [txnsQ.data]);
 
+  const revenueByEmployee = useMemo(() => {
+    return performanceRows
+      .filter(r => r.revenue > 0)
+      .map(r => ({ name: r.employee_code, fullName: r.name, revenue: r.revenue, commission: r.commission }));
+  }, [performanceRows]);
+
+  const revenueByPlan = useMemo(() => {
+    const map = new Map<string, number>();
+    (txnsQ.data ?? []).forEach(t => {
+      const key = t.plan_name || `₹${Number(t.plan_amount).toLocaleString("en-IN")}`;
+      map.set(key, (map.get(key) ?? 0) + Number(t.plan_amount));
+    });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [txnsQ.data]);
+
   async function exportPerformance() {
     await exportAndDownload(
       `pixo-employee-performance-${new Date().toISOString().slice(0, 10)}`,
@@ -237,6 +276,93 @@ export default function SalesPage() {
           <MetricCard title="Total Commission" value={`₹${stats.totalCommission.toLocaleString("en-IN")}`} icon={Award} mono />
           <MetricCard title="Active Employees" value={(employeesQ.data ?? []).filter(e => e.status === "active").length} icon={Users} />
           <MetricCard title="Top Performer" value={stats.topName} change={stats.topRev ? `₹${stats.topRev.toLocaleString("en-IN")}` : ""} icon={Trophy} changeType="positive" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Revenue by Employee
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {revenueByEmployee.length === 0 ? (
+                <div className="h-[280px] flex items-center justify-center">
+                  <EmptyState icon={BarChart3} title="No revenue data" description="Log a sale to populate this chart." />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={revenueByEmployee} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip
+                      contentStyle={{
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                      formatter={(value: number) => [`₹${value.toLocaleString("en-IN")}`, "Revenue"]}
+                      labelFormatter={(label, payload) => {
+                        const p = payload?.[0]?.payload as { fullName?: string } | undefined;
+                        return p?.fullName ? `${p.fullName} (${label})` : String(label);
+                      }}
+                    />
+                    <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <PieIcon className="h-4 w-4 text-primary" />
+                Revenue by Plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {revenueByPlan.length === 0 ? (
+                <div className="h-[280px] flex items-center justify-center">
+                  <EmptyState icon={PieIcon} title="No plan data" description="Log a sale to populate this chart." />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={revenueByPlan}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      innerRadius={45}
+                      paddingAngle={2}
+                      label={(entry) => `${entry.name}`}
+                      labelLine={false}
+                    >
+                      {revenueByPlan.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RTooltip
+                      contentStyle={{
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                      formatter={(value: number, name: string) => [`₹${value.toLocaleString("en-IN")}`, name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
