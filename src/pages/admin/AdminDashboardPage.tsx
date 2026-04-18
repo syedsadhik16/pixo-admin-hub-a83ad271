@@ -127,11 +127,20 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout title="PIXO Tracking Engine" subtitle="Real-time constraint monitoring & decision intelligence">
-      <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative">
-            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
-            <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
+      <Tabs defaultValue="overview" className="space-y-6 animate-fade-in">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="students">Students</TabsTrigger>
+          <TabsTrigger value="parents">Parents</TabsTrigger>
+          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard title="Registered Apps" value={totalStudents ?? 0} change="Global cohort" changeType="neutral" icon={Users} />
+            </div>
           </div>
           <div className="relative">
             <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
