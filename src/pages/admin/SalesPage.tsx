@@ -63,18 +63,22 @@ export default function SalesPage() {
     queryKey: ["sales-employees"],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("employee_profiles").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to load employees");
       return (data ?? []) as Employee[];
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   const txnsQ = useQuery({
     queryKey: ["sales-txns"],
     queryFn: async () => {
       const { data, error } = await (supabase.from as any)("sales_transactions").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Failed to load sales transactions");
       return (data ?? []) as SalesTxn[];
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   const addEmployee = useMutation({
@@ -222,7 +226,8 @@ export default function SalesPage() {
     toast.success("CSV exported");
   }
 
-  const isLoading = employeesQ.isLoading || txnsQ.isLoading;
+  const queryError = (employeesQ.error as Error | null) || (txnsQ.error as Error | null);
+  const initialLoading = (employeesQ.isLoading && !employeesQ.data) || (txnsQ.isLoading && !txnsQ.data);
 
   return (
     <AdminLayout title="Sales & Commission" subtitle="Employee revenue tracking and commission engine">
@@ -368,7 +373,13 @@ export default function SalesPage() {
           </CardHeader>
 
           <CardContent>
-            {isLoading ? <LoadingSpinner /> : (
+            {queryError && (
+              <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="font-semibold mb-1">Failed to load data</div>
+                <div className="font-mono break-all">{queryError.message}</div>
+              </div>
+            )}
+            {initialLoading && !queryError ? <LoadingSpinner /> : (
               <>
                 <TabsContent value="performance" forceMount={tab === "performance" ? true : undefined} hidden={tab !== "performance"}>
                   {performanceRows.length === 0 ? (
