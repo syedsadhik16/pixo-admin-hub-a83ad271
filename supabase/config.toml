@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.auto-drop-stale-leads]
 verify_jwt = false
+
+[functions.admin-access-check]
+verify_jwt = false
