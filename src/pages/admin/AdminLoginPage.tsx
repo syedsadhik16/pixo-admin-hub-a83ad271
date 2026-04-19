@@ -256,11 +256,11 @@ export default function AdminLoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent)}
-                  className="text-primary underline"
-                  disabled={loading}
+                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent, true)}
+                  className="text-primary underline disabled:text-muted-foreground disabled:no-underline"
+                  disabled={loading || resendCooldown > 0}
                 >
-                  Resend code
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                 </button>
               </div>
             </form>
