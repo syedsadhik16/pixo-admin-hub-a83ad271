@@ -52,39 +52,14 @@ export default function AdminLoginPage() {
       toast.error(`Please wait ${resendCooldown}s before requesting another code`);
       return;
     }
+
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       toast.error("Enter your admin email");
       return;
     }
+
     setLoading(true);
-
-    // Pre-check that this email is an active admin (best-effort, server enforces final).
-    const { data: emp, error: empErr } = await supabase
-      .from("employee_profiles")
-      .select("role, status")
-      .ilike("email", normalizedEmail)
-      .maybeSingle();
-
-    if (empErr) {
-      toast.error(empErr.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!emp || emp.role !== "admin" || emp.status !== "active") {
-      trackLeadEvent({
-        event_type: "login_failed",
-        email: normalizedEmail,
-        role_attempted: "admin",
-        success: false,
-        failure_reason: "not_admin",
-        route: "/admin/login",
-      });
-      toast.error("Access not configured");
-      setLoading(false);
-      return;
-    }
 
     trackLeadEvent({
       event_type: "login_attempt",
@@ -102,14 +77,23 @@ export default function AdminLoginPage() {
     });
 
     if (error) {
-      // Surface Supabase rate-limit feedback explicitly
       const msg = error.message || "Failed to send code";
+
       if (/rate|too many|seconds/i.test(msg)) {
         toast.error(`Rate limited: ${msg}`);
         setResendCooldown(60);
       } else {
-        toast.error(msg);
+        trackLeadEvent({
+          event_type: "login_failed",
+          email: normalizedEmail,
+          role_attempted: "admin",
+          success: false,
+          failure_reason: msg,
+          route: "/admin/login",
+        });
+        toast.error(/user|signup|not allowed|not found/i.test(msg) ? "Access not configured" : msg);
       }
+
       setLoading(false);
       return;
     }
