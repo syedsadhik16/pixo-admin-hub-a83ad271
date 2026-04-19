@@ -8,8 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { trackLeadEvent } from "@/lib/leadTracking";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type Step = "email" | "otp";
+
+interface DiagnosticsResult {
+  hasAuthUser: boolean;
+  hasEmployeeProfile: boolean;
+  employeeRole: string | null;
+  employeeStatus: string | null;
+  hasAdminRole: boolean;
+  canAccessAdmin: boolean;
+}
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -17,6 +27,9 @@ export default function AdminLoginPage() {
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
+  const isDev = import.meta.env.DEV;
   const navigate = useNavigate();
 
   // Tick down the resend cooldown each second
