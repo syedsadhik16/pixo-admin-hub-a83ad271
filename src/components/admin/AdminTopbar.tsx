@@ -2,10 +2,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Bell, Settings, LogOut } from "lucide-react";
+import { RefreshCw, Bell, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface AdminTopbarProps {
   title?: string;
@@ -14,6 +15,9 @@ interface AdminTopbarProps {
 
 export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
   const navigate = useNavigate();
+  const { user, employee } = useAuthContext();
+  const adminEmail = employee?.email ?? user?.email ?? null;
+  const adminName = employee?.name ?? null;
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
