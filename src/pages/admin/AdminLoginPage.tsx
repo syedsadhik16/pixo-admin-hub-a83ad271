@@ -181,6 +181,27 @@ export default function AdminLoginPage() {
     setOtp("");
   };
 
+  const runDiagnostics = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Enter an email to diagnose");
+      return;
+    }
+    setDiagLoading(true);
+    setDiag(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-access-check", {
+        body: { email: normalizedEmail },
+      });
+      if (error) throw error;
+      setDiag(data as DiagnosticsResult);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Diagnostics failed");
+    } finally {
+      setDiagLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-pixo-surface">
       <Card className="w-full max-w-md mx-4">
