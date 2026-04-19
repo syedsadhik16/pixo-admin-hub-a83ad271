@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { resolveAdminAccess } from "@/lib/adminAccess";
 
 export type EmployeeRole = "admin" | "sales" | "ops" | "founder" | "staff";
 
@@ -30,50 +31,40 @@ export function useAuth() {
     accessError: null,
   });
 
-  const fetchEmployee = useCallback(async (email: string | undefined): Promise<{ employee: EmployeeRecord | null; error: string | null }> => {
-    if (!email) return { employee: null, error: "No email on session" };
-    const { data, error } = await supabase
-      .from("employee_profiles")
-      .select("id, employee_code, name, email, role, status")
-      .ilike("email", email)
-      .maybeSingle();
+  const syncAuthState = useCallback(async (session: Session | null) => {
+    if (!session?.user) {
+      setState({ user: null, session: null, employee: null, loading: false, accessError: null });
+      return;
+    }
 
-    if (error) return { employee: null, error: error.message };
-    if (!data) return { employee: null, error: "Access not configured" };
-    if (data.status !== "active") return { employee: null, error: "Account inactive" };
-    return { employee: data as EmployeeRecord, error: null };
+    const result = await resolveAdminAccess(session);
+    setState({
+      user: result.user,
+      session: result.session,
+      employee: (result.employee as EmployeeRecord | null) ?? null,
+      loading: false,
+      accessError: result.error,
+    });
   }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        // Defer DB call to avoid deadlock inside auth callback
-        setTimeout(async () => {
-          const { employee, error } = await fetchEmployee(session.user.email);
-          setState({ user: session.user, session, employee, loading: false, accessError: error });
-        }, 0);
-      } else {
-        setState({ user: null, session: null, employee: null, loading: false, accessError: null });
-      }
+      void syncAuthState(session);
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { employee, error } = await fetchEmployee(session.user.email);
-        setState({ user: session.user, session, employee, loading: false, accessError: error });
-      } else {
-        setState(s => ({ ...s, loading: false }));
-      }
+      await syncAuthState(session);
     }).catch(e => {
       console.error("[useAuth] getSession exception:", e);
       setState(s => ({ ...s, loading: false }));
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchEmployee]);
+  }, [syncAuthState]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setState({ user: null, session: null, employee: null, loading: false, accessError: null });
   }, []);
 
   const isAdmin = useCallback(
