@@ -209,7 +209,7 @@ export default function AdminLoginPage() {
                   type="email"
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setResendCooldown(0); }}
                   placeholder="you@pixolearn.com"
                   required
                 />
