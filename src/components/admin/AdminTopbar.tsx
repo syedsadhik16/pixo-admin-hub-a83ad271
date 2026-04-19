@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RefreshCw, Bell, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -15,18 +14,18 @@ interface AdminTopbarProps {
 
 export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
   const navigate = useNavigate();
-  const { user, employee } = useAuthContext();
+  const { user, employee, signOut } = useAuthContext();
   const adminEmail = employee?.email ?? user?.email ?? null;
   const adminName = employee?.name ?? null;
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await signOut();
+      toast.success("Signed out");
+      navigate("/admin/login", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign out");
     }
-    toast.success("Signed out");
-    navigate("/admin/login", { replace: true });
   };
 
   return (

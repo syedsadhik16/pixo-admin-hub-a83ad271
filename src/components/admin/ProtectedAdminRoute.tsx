@@ -19,17 +19,7 @@ export function ProtectedAdminRoute({ children }: { children: React.ReactNode })
   }
 
   if (!user) return <Navigate to="/admin/login" replace />;
-  if (!isAdmin()) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-pixo-surface">
-        <div className="max-w-md text-center space-y-3 p-6">
-          <h2 className="text-lg font-semibold">Access denied</h2>
-          <p className="text-sm text-muted-foreground">{accessError ?? "Admin role required."}</p>
-          <Navigate to="/admin/login" replace />
-        </div>
-      </div>
-    );
-  }
+  if (!isAdmin()) return <Navigate to="/admin/login" replace state={{ accessDenied: accessError ?? "Admin role required." }} />;
 
   return <>{children}</>;
 }
