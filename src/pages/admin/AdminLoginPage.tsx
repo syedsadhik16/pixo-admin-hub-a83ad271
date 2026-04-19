@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,24 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { toast } from "sonner";
 import { trackLeadEvent } from "@/lib/leadTracking";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import {
+  fetchAdminDiagnostics,
+  getAdminAccessMessage,
+  getAdminRedirectTarget,
+  refreshAndResolveAdminAccess,
+  resolveAdminAccess,
+  type AdminDiagnosticsResult,
+} from "@/lib/adminAccess";
 
 type Step = "email" | "otp";
 
-interface DiagnosticsResult {
-  hasAuthUser: boolean;
-  hasEmployeeProfile: boolean;
-  employeeRole: string | null;
-  employeeStatus: string | null;
-  hasAdminRole: boolean;
-  canAccessAdmin: boolean;
+function devLog(step: string, payload?: unknown) {
+  if (!import.meta.env.DEV) return;
+  if (payload === undefined) {
+    console.info(`[admin-login] ${step}`);
+    return;
+  }
+  console.info(`[admin-login] ${step}`, payload);
 }
 
 export default function AdminLoginPage() {
@@ -28,9 +36,12 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [diagLoading, setDiagLoading] = useState(false);
-  const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
+  const [diag, setDiag] = useState<AdminDiagnosticsResult | null>(null);
+  const [accessMessage, setAccessMessage] = useState<string | null>(null);
   const isDev = import.meta.env.DEV;
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTarget = useMemo(() => getAdminRedirectTarget(), []);
 
   // Tick down the resend cooldown each second
   useEffect(() => {
@@ -40,24 +51,35 @@ export default function AdminLoginPage() {
   }, [resendCooldown]);
 
 
-  // If already signed in as admin, skip login
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (cancelled || !session?.user?.email) return;
-      const { data: emp } = await supabase
-        .from("employee_profiles")
-        .select("role, status")
-        .ilike("email", session.user.email)
-        .maybeSingle();
-      if (emp && emp.role === "admin" && emp.status === "active") {
-        navigate("/admin/dashboard", { replace: true });
+
+    const hydrate = async () => {
+      const result = await resolveAdminAccess();
+      if (cancelled || !result.session) return;
+
+      if (result.diagnostics) setDiag(result.diagnostics);
+
+      if (result.isAdmin) {
+        devLog("final redirect target", redirectTarget);
+        navigate(redirectTarget, { replace: true });
+        return;
       }
-    });
+
+      setAccessMessage(getAdminAccessMessage(result));
+    };
+
+    void hydrate();
+
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, redirectTarget]);
+
+  useEffect(() => {
+    const routeMessage = (location.state as { accessDenied?: string } | null)?.accessDenied;
+    if (routeMessage) setAccessMessage(routeMessage);
+  }, [location.state]);
 
   const handleSendOtp = async (e: React.FormEvent, isResend = false) => {
     e.preventDefault();
@@ -73,6 +95,10 @@ export default function AdminLoginPage() {
     }
 
     setLoading(true);
+    setAccessMessage(null);
+    if (!isResend) setDiag(null);
+    setOtp("");
+    devLog("OTP requested", { email: normalizedEmail, isResend });
 
     trackLeadEvent({
       event_type: "login_attempt",
@@ -85,7 +111,7 @@ export default function AdminLoginPage() {
       email: normalizedEmail,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/admin/dashboard`,
+        emailRedirectTo: `${window.location.origin}${redirectTarget}`,
       },
     });
 
@@ -104,7 +130,9 @@ export default function AdminLoginPage() {
           failure_reason: msg,
           route: "/admin/login",
         });
-        toast.error(/user|signup|not allowed|not found/i.test(msg) ? "Access not configured" : msg);
+        const friendlyMessage = /user|signup|not allowed|not found/i.test(msg) ? "Access not configured" : msg;
+        setAccessMessage(friendlyMessage);
+        toast.error(friendlyMessage);
       }
 
       setLoading(false);
@@ -125,6 +153,7 @@ export default function AdminLoginPage() {
       return;
     }
     setLoading(true);
+    setAccessMessage(null);
     const normalizedEmail = email.trim().toLowerCase();
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -142,43 +171,48 @@ export default function AdminLoginPage() {
         failure_reason: error?.message ?? "otp_invalid",
         route: "/admin/login",
       });
-      toast.error(error?.message ?? "Invalid or expired code");
+      const friendlyMessage = error?.message ?? "Invalid or expired code";
+      setAccessMessage(friendlyMessage);
+      toast.error(friendlyMessage);
       setLoading(false);
       return;
     }
 
-    // Final server-side authorization
-    const sessionEmail = data.user?.email?.toLowerCase() ?? normalizedEmail;
-    const { data: emp, error: empErr } = await supabase
-      .from("employee_profiles")
-      .select("role, status")
-      .ilike("email", sessionEmail)
-      .maybeSingle();
+    devLog("OTP verified", { email: normalizedEmail, hasSession: !!data.session });
 
-    if (empErr || !emp || emp.role !== "admin" || emp.status !== "active") {
+    const result = await refreshAndResolveAdminAccess(data.session);
+    if (result.diagnostics) setDiag(result.diagnostics);
+
+    if (!result.session || !result.isAdmin) {
       await supabase.auth.signOut();
-      toast.error("Access not configured");
+      const message = getAdminAccessMessage(result);
+      setAccessMessage(message);
+      toast.error(message);
       setLoading(false);
       return;
     }
 
     trackLeadEvent({
       event_type: "login_success",
-      email: sessionEmail,
-      user_id: data.user?.id ?? null,
+      email: result.user?.email?.toLowerCase() ?? normalizedEmail,
+      user_id: result.user?.id ?? null,
       role_attempted: "admin",
       success: true,
       route: "/admin/login",
     });
 
+    setOtp("");
+    setDiag(result.diagnostics);
+    devLog("final redirect target", redirectTarget);
     toast.success("Signed in 🚀");
-    navigate("/admin/dashboard", { replace: true });
+    navigate(redirectTarget, { replace: true });
     setLoading(false);
   };
 
   const handleResetEmail = () => {
     setStep("email");
     setOtp("");
+    setAccessMessage(null);
   };
 
   const runDiagnostics = async () => {
@@ -190,11 +224,9 @@ export default function AdminLoginPage() {
     setDiagLoading(true);
     setDiag(null);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-access-check", {
-        body: { email: normalizedEmail },
-      });
-      if (error) throw error;
-      setDiag(data as DiagnosticsResult);
+      const result = await fetchAdminDiagnostics(normalizedEmail);
+      setDiag(result);
+      setAccessMessage(result.canAccessAdmin ? null : getAdminAccessMessage({ error: null, diagnostics: result }));
     } catch (err: any) {
       toast.error(err?.message ?? "Diagnostics failed");
     } finally {
@@ -240,6 +272,10 @@ export default function AdminLoginPage() {
               <p className="text-xs text-muted-foreground text-center">
                 Only approved admin accounts can sign in.
               </p>
+
+              {accessMessage && (
+                <p className="text-sm text-destructive text-center">{accessMessage}</p>
+              )}
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -274,13 +310,17 @@ export default function AdminLoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent, true)}
+                  onClick={() => void handleSendOtp({ preventDefault() {} } as React.FormEvent, true)}
                   className="text-primary underline disabled:text-muted-foreground disabled:no-underline"
                   disabled={loading || resendCooldown > 0}
                 >
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                 </button>
               </div>
+
+              {accessMessage && (
+                <p className="text-sm text-destructive text-center">{accessMessage}</p>
+              )}
             </form>
           )}
         </CardContent>
