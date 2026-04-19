@@ -1,51 +1,78 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
 import { trackLeadEvent } from "@/lib/leadTracking";
 
-export default function AdminLoginPage() {
-  const [email, setEmail] = useState("admin@pixolearn.com");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
-  const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+type Step = "email" | "otp";
 
-  // 🔓 Dev bypass: skip the login screen entirely.
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // If already signed in as admin, skip login
   useEffect(() => {
-    if (DEV_BYPASS_AUTH) {
-      navigate("/admin/dashboard", { replace: true });
-    }
+    let cancelled = false;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled || !session?.user?.email) return;
+      const { data: emp } = await supabase
+        .from("employee_profiles")
+        .select("role, status")
+        .ilike("email", session.user.email)
+        .maybeSingle();
+      if (emp && emp.role === "admin" && emp.status === "active") {
+        navigate("/admin/dashboard", { replace: true });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
-  if (DEV_BYPASS_AUTH) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-pixo-surface">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Entering admin…</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Enter your admin email");
+      return;
+    }
     setLoading(true);
 
-    const normalizedEmail = email.trim().toLowerCase();
-    console.log("[AdminLogin] project:", { projectRef, supabaseUrl });
-    console.log("[AdminLogin] login email:", normalizedEmail);
+    // Pre-check that this email is an active admin (best-effort, server enforces final).
+    const { data: emp, error: empErr } = await supabase
+      .from("employee_profiles")
+      .select("role, status")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
 
-    // Track the attempt up-front so failures are also captured.
+    if (empErr) {
+      toast.error(empErr.message);
+      setLoading(false);
+      return;
+    }
+
+    if (!emp || emp.role !== "admin" || emp.status !== "active") {
+      trackLeadEvent({
+        event_type: "login_failed",
+        email: normalizedEmail,
+        role_attempted: "admin",
+        success: false,
+        failure_reason: "not_admin",
+        route: "/admin/login",
+      });
+      toast.error("Access not configured");
+      setLoading(false);
+      return;
+    }
+
     trackLeadEvent({
       event_type: "login_attempt",
       email: normalizedEmail,
@@ -53,60 +80,65 @@ export default function AdminLoginPage() {
       route: "/admin/login",
     });
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
-      password,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/admin/dashboard`,
+      },
     });
 
-    console.log("[AdminLogin] auth response:", data);
-
     if (error) {
-      console.error("[AdminLogin] auth error:", error);
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success("Check your email for the 6-digit code");
+    setStep("otp");
+    setLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) {
+      toast.error("Enter the 6-digit code");
+      return;
+    }
+    setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: normalizedEmail,
+      token: otp,
+      type: "email",
+    });
+
+    if (error || !data.session) {
       trackLeadEvent({
         event_type: "login_failed",
         email: normalizedEmail,
         role_attempted: "admin",
         success: false,
-        failure_reason: error.message,
+        failure_reason: error?.message ?? "otp_invalid",
         route: "/admin/login",
       });
-      toast.error(error.message || "Invalid login credentials");
+      toast.error(error?.message ?? "Invalid or expired code");
       setLoading(false);
       return;
     }
 
-    const sessionEmail = data.user?.email?.toLowerCase() || normalizedEmail;
-
+    // Final server-side authorization
+    const sessionEmail = data.user?.email?.toLowerCase() ?? normalizedEmail;
     const { data: emp, error: empErr } = await supabase
       .from("employee_profiles")
-      .select("id, role, status, email")
+      .select("role, status")
       .ilike("email", sessionEmail)
       .maybeSingle();
 
-    if (empErr) {
-      await supabase.auth.signOut();
-      toast.error(empErr.message);
-      setLoading(false);
-      return;
-    }
-
-    if (!emp) {
+    if (empErr || !emp || emp.role !== "admin" || emp.status !== "active") {
       await supabase.auth.signOut();
       toast.error("Access not configured");
-      setLoading(false);
-      return;
-    }
-
-    if (emp.status !== "active") {
-      await supabase.auth.signOut();
-      toast.error("Account inactive");
-      setLoading(false);
-      return;
-    }
-
-    if (emp.role !== "admin") {
-      await supabase.auth.signOut();
-      toast.error("Admin access required");
       setLoading(false);
       return;
     }
@@ -120,22 +152,14 @@ export default function AdminLoginPage() {
       route: "/admin/login",
     });
 
-    toast.success("Login success 🚀");
-    navigate("/admin/dashboard");
+    toast.success("Signed in 🚀");
+    navigate("/admin/dashboard", { replace: true });
     setLoading(false);
   };
 
-  const handleForgotPassword = async () => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/admin/reset-password`,
-    });
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    toast.success("Password reset email sent");
+  const handleResetEmail = () => {
+    setStep("email");
+    setOtp("");
   };
 
   return (
@@ -146,48 +170,79 @@ export default function AdminLoginPage() {
             <span className="text-lg font-bold text-primary-foreground">P</span>
           </div>
           <CardTitle className="text-xl">PIXO Admin Panel</CardTitle>
-          <CardDescription>Sign in with your admin credentials</CardDescription>
+          <CardDescription>
+            {step === "email"
+              ? "Sign in with a one-time code sent to your admin email"
+              : `Enter the 6-digit code sent to ${email}`}
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Password</Label>
-              <div className="relative">
+          {step === "email" ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-email">Admin email</Label>
                 <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="admin-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@pixolearn.com"
                   required
-                  className="pr-10"
                 />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Sending code…" : "Send OTP"}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Only approved admin accounts can sign in.
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="space-y-2">
+                <Label>One-time code</Label>
+                <div className="flex justify-center">
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
+                {loading ? "Verifying…" : "Verify & sign in"}
+              </Button>
+
+              <div className="flex justify-between text-sm">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-gray-500"
+                  onClick={handleResetEmail}
+                  className="text-muted-foreground underline"
+                  disabled={loading}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  Use a different email
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent)}
+                  className="text-primary underline"
+                  disabled={loading}
+                >
+                  Resend code
                 </button>
               </div>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-
-            <div className="text-center text-sm">
-              <button type="button" onClick={handleForgotPassword} className="text-primary underline">
-                Forgot password?
-              </button>
-            </div>
-
-            <div className="text-xs text-gray-400 text-center">Default admin email: admin@pixolearn.com</div>
-          </form>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
