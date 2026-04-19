@@ -56,6 +56,17 @@ export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <Settings className="h-3.5 w-3.5" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSignOut}
+          className="h-8 gap-1.5 text-xs"
+          aria-label="Sign out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Sign out</span>
+        </Button>
+
       </div>
     </header>
   );
