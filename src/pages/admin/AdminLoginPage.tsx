@@ -16,7 +16,16 @@ export default function AdminLoginPage() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const navigate = useNavigate();
+
+  // Tick down the resend cooldown each second
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
 
   // If already signed in as admin, skip login
   useEffect(() => {
@@ -37,8 +46,12 @@ export default function AdminLoginPage() {
     };
   }, [navigate]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent, isResend = false) => {
     e.preventDefault();
+    if (resendCooldown > 0) {
+      toast.error(`Please wait ${resendCooldown}s before requesting another code`);
+      return;
+    }
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       toast.error("Enter your admin email");
@@ -89,15 +102,24 @@ export default function AdminLoginPage() {
     });
 
     if (error) {
-      toast.error(error.message);
+      // Surface Supabase rate-limit feedback explicitly
+      const msg = error.message || "Failed to send code";
+      if (/rate|too many|seconds/i.test(msg)) {
+        toast.error(`Rate limited: ${msg}`);
+        setResendCooldown(60);
+      } else {
+        toast.error(msg);
+      }
       setLoading(false);
       return;
     }
 
-    toast.success("Check your email for the 6-digit code");
+    toast.success(isResend ? "New code sent" : "Check your email for the 6-digit code");
     setStep("otp");
+    setResendCooldown(60);
     setLoading(false);
   };
+
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +209,7 @@ export default function AdminLoginPage() {
                   type="email"
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setResendCooldown(0); }}
                   placeholder="you@pixolearn.com"
                   required
                 />
@@ -234,11 +256,11 @@ export default function AdminLoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent)}
-                  className="text-primary underline"
-                  disabled={loading}
+                  onClick={(e) => handleSendOtp(e as unknown as React.FormEvent, true)}
+                  className="text-primary underline disabled:text-muted-foreground disabled:no-underline"
+                  disabled={loading || resendCooldown > 0}
                 >
-                  Resend code
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                 </button>
               </div>
             </form>

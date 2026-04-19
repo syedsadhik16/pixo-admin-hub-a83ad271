@@ -2,7 +2,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Bell, Settings } from "lucide-react";
+import { RefreshCw, Bell, Settings, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AdminTopbarProps {
   title?: string;
@@ -10,6 +13,18 @@ interface AdminTopbarProps {
 }
 
 export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Signed out");
+    navigate("/admin/login", { replace: true });
+  };
+
   return (
     <header className="h-14 flex items-center justify-between border-b bg-card px-4 shrink-0">
       <div className="flex items-center gap-3">
@@ -41,6 +56,17 @@ export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <Settings className="h-3.5 w-3.5" />
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSignOut}
+          className="h-8 gap-1.5 text-xs"
+          aria-label="Sign out"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Sign out</span>
+        </Button>
+
       </div>
     </header>
   );
