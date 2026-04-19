@@ -8,8 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { trackLeadEvent } from "@/lib/leadTracking";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type Step = "email" | "otp";
+
+interface DiagnosticsResult {
+  hasAuthUser: boolean;
+  hasEmployeeProfile: boolean;
+  employeeRole: string | null;
+  employeeStatus: string | null;
+  hasAdminRole: boolean;
+  canAccessAdmin: boolean;
+}
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -17,6 +27,9 @@ export default function AdminLoginPage() {
   const [step, setStep] = useState<Step>("email");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
+  const isDev = import.meta.env.DEV;
   const navigate = useNavigate();
 
   // Tick down the resend cooldown each second
@@ -168,8 +181,29 @@ export default function AdminLoginPage() {
     setOtp("");
   };
 
+  const runDiagnostics = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Enter an email to diagnose");
+      return;
+    }
+    setDiagLoading(true);
+    setDiag(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-access-check", {
+        body: { email: normalizedEmail },
+      });
+      if (error) throw error;
+      setDiag(data as DiagnosticsResult);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Diagnostics failed");
+    } finally {
+      setDiagLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pixo-surface">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-pixo-surface py-8">
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 h-12 w-12 rounded-xl pixo-gradient flex items-center justify-center">
@@ -251,6 +285,72 @@ export default function AdminLoginPage() {
           )}
         </CardContent>
       </Card>
+
+      {isDev && (
+        <Card className="w-full max-w-md mx-4 mt-4 border-dashed border-pixo-amber/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-mono-label uppercase tracking-wide text-pixo-amber">
+              Dev · Access Diagnostics
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Check whether an email has an auth user, employee profile, and admin role. Visible in development only.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={runDiagnostics}
+              disabled={diagLoading || !email.trim()}
+              className="w-full"
+            >
+              {diagLoading ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />Checking…</>
+              ) : (
+                "Run diagnostics for this email"
+              )}
+            </Button>
+
+            {diag && (
+              <div className="space-y-1.5 text-xs">
+                <DiagRow label="Auth user exists" ok={diag.hasAuthUser} />
+                <DiagRow label="Employee profile exists" ok={diag.hasEmployeeProfile} />
+                <DiagRow
+                  label={`Employee role = admin${diag.employeeRole ? ` (current: ${diag.employeeRole})` : ""}`}
+                  ok={diag.employeeRole === "admin"}
+                />
+                <DiagRow
+                  label={`Employee status = active${diag.employeeStatus ? ` (current: ${diag.employeeStatus})` : ""}`}
+                  ok={diag.employeeStatus === "active"}
+                />
+                <DiagRow label="user_roles has admin row" ok={diag.hasAdminRole} />
+                <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                  <span className="font-medium">Can access /admin/*</span>
+                  {diag.canAccessAdmin ? (
+                    <span className="text-pixo-green font-mono-label text-[11px]">YES</span>
+                  ) : (
+                    <span className="text-destructive font-mono-label text-[11px]">NO</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function DiagRow({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <div className="flex items-start gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-pixo-green shrink-0 mt-0.5" />
+      ) : (
+        <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+      )}
+      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 }
