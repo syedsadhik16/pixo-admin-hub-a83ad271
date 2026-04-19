@@ -60,6 +60,15 @@ export function AdminTopbar({ title, subtitle }: AdminTopbarProps) {
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <Settings className="h-3.5 w-3.5" />
         </Button>
+        {adminEmail && (
+          <div
+            className="hidden md:flex items-center gap-1.5 px-2 h-8 rounded-md bg-muted/50 border border-border max-w-[220px]"
+            title={adminName ? `${adminName} · ${adminEmail}` : adminEmail}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-pixo-green shrink-0" />
+            <span className="text-[11px] font-medium truncate">{adminEmail}</span>
+          </div>
+        )}
         <Button
           variant="ghost"
           size="sm"
