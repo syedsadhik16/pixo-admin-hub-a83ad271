@@ -285,6 +285,72 @@ export default function AdminLoginPage() {
           )}
         </CardContent>
       </Card>
+
+      {isDev && (
+        <Card className="w-full max-w-md mx-4 mt-4 border-dashed border-pixo-amber/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-mono-label uppercase tracking-wide text-pixo-amber">
+              Dev · Access Diagnostics
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Check whether an email has an auth user, employee profile, and admin role. Visible in development only.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={runDiagnostics}
+              disabled={diagLoading || !email.trim()}
+              className="w-full"
+            >
+              {diagLoading ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />Checking…</>
+              ) : (
+                "Run diagnostics for this email"
+              )}
+            </Button>
+
+            {diag && (
+              <div className="space-y-1.5 text-xs">
+                <DiagRow label="Auth user exists" ok={diag.hasAuthUser} />
+                <DiagRow label="Employee profile exists" ok={diag.hasEmployeeProfile} />
+                <DiagRow
+                  label={`Employee role = admin${diag.employeeRole ? ` (current: ${diag.employeeRole})` : ""}`}
+                  ok={diag.employeeRole === "admin"}
+                />
+                <DiagRow
+                  label={`Employee status = active${diag.employeeStatus ? ` (current: ${diag.employeeStatus})` : ""}`}
+                  ok={diag.employeeStatus === "active"}
+                />
+                <DiagRow label="user_roles has admin row" ok={diag.hasAdminRole} />
+                <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                  <span className="font-medium">Can access /admin/*</span>
+                  {diag.canAccessAdmin ? (
+                    <span className="text-pixo-green font-mono-label text-[11px]">YES</span>
+                  ) : (
+                    <span className="text-destructive font-mono-label text-[11px]">NO</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function DiagRow({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <div className="flex items-start gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-pixo-green shrink-0 mt-0.5" />
+      ) : (
+        <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+      )}
+      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 }
