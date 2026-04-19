@@ -46,8 +46,12 @@ export default function AdminLoginPage() {
     };
   }, [navigate]);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent, isResend = false) => {
     e.preventDefault();
+    if (resendCooldown > 0) {
+      toast.error(`Please wait ${resendCooldown}s before requesting another code`);
+      return;
+    }
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       toast.error("Enter your admin email");
@@ -98,15 +102,24 @@ export default function AdminLoginPage() {
     });
 
     if (error) {
-      toast.error(error.message);
+      // Surface Supabase rate-limit feedback explicitly
+      const msg = error.message || "Failed to send code";
+      if (/rate|too many|seconds/i.test(msg)) {
+        toast.error(`Rate limited: ${msg}`);
+        setResendCooldown(60);
+      } else {
+        toast.error(msg);
+      }
       setLoading(false);
       return;
     }
 
-    toast.success("Check your email for the 6-digit code");
+    toast.success(isResend ? "New code sent" : "Check your email for the 6-digit code");
     setStep("otp");
+    setResendCooldown(60);
     setLoading(false);
   };
+
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
