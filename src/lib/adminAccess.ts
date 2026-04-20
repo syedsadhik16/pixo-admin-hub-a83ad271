@@ -153,7 +153,7 @@ export async function resolveAdminAccess(sessionOverride?: Session | null): Prom
   }
 
   try {
-    const diagnostics = await fetchAdminDiagnostics(normalizedEmail);
+    const diagnostics = await fetchAdminDiagnostics(normalizedEmail, session.user.id);
     return {
       session,
       user: session.user,
@@ -185,7 +185,12 @@ export async function refreshAndResolveAdminAccess(sessionOverride?: Session | n
     session = current.data.session;
   }
 
-  const { data, error } = await supabase.auth.refreshSession({ refresh_token: session?.refresh_token });
+  if (!session?.refresh_token) {
+    logDev("session refresh skipped", { reason: "missing_refresh_token" });
+    return resolveAdminAccess(session);
+  }
+
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: session.refresh_token });
   if (error) {
     logDev("session refresh skipped", { error: error.message });
     return resolveAdminAccess(session);

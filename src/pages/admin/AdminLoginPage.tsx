@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   refreshAndResolveAdminAccess,
   resolveAdminAccess,
   type AdminDiagnosticsResult,
+  type AdminRedirectState,
 } from "@/lib/adminAccess";
 
 type Step = "email" | "otp";
@@ -38,10 +39,12 @@ export default function AdminLoginPage() {
   const [diagLoading, setDiagLoading] = useState(false);
   const [diag, setDiag] = useState<AdminDiagnosticsResult | null>(null);
   const [accessMessage, setAccessMessage] = useState<string | null>(null);
+  const redirectingRef = useRef(false);
   const isDev = import.meta.env.DEV;
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTarget = useMemo(() => getAdminRedirectTarget(), []);
+  const routeState = (location.state as AdminRedirectState | null) ?? null;
+  const redirectTarget = useMemo(() => getAdminRedirectTarget(routeState?.from), [routeState?.from]);
 
   // Tick down the resend cooldown each second
   useEffect(() => {
@@ -51,22 +54,31 @@ export default function AdminLoginPage() {
   }, [resendCooldown]);
 
 
+  const handleResolvedAccess = async (result: Awaited<ReturnType<typeof resolveAdminAccess>>) => {
+    if (result.diagnostics) setDiag(result.diagnostics);
+
+    if (result.isAdmin && result.session && !redirectingRef.current) {
+      redirectingRef.current = true;
+      setAccessMessage(null);
+      setOtp("");
+      setStep("email");
+      devLog("final redirect target", redirectTarget);
+      navigate(redirectTarget, { replace: true });
+      return;
+    }
+
+    if (result.session && !result.isAdmin) {
+      setAccessMessage(getAdminAccessMessage(result));
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
 
     const hydrate = async () => {
       const result = await resolveAdminAccess();
       if (cancelled || !result.session) return;
-
-      if (result.diagnostics) setDiag(result.diagnostics);
-
-      if (result.isAdmin) {
-        devLog("final redirect target", redirectTarget);
-        navigate(redirectTarget, { replace: true });
-        return;
-      }
-
-      setAccessMessage(getAdminAccessMessage(result));
+      await handleResolvedAccess(result);
     };
 
     void hydrate();
@@ -77,9 +89,21 @@ export default function AdminLoginPage() {
   }, [navigate, redirectTarget]);
 
   useEffect(() => {
-    const routeMessage = (location.state as { accessDenied?: string } | null)?.accessDenied;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" && event !== "TOKEN_REFRESHED" && event !== "INITIAL_SESSION") return;
+      void (async () => {
+        const result = await resolveAdminAccess(session);
+        await handleResolvedAccess(result);
+      })();
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, redirectTarget]);
+
+  useEffect(() => {
+    const routeMessage = routeState?.accessDenied;
     if (routeMessage) setAccessMessage(routeMessage);
-  }, [location.state]);
+  }, [routeState]);
 
   const handleSendOtp = async (e: React.FormEvent, isResend = false) => {
     e.preventDefault();
@@ -95,6 +119,7 @@ export default function AdminLoginPage() {
     }
 
     setLoading(true);
+    redirectingRef.current = false;
     setAccessMessage(null);
     if (!isResend) setDiag(null);
     setOtp("");
@@ -111,7 +136,6 @@ export default function AdminLoginPage() {
       email: normalizedEmail,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}${redirectTarget}`,
       },
     });
 
@@ -153,6 +177,7 @@ export default function AdminLoginPage() {
       return;
     }
     setLoading(true);
+    redirectingRef.current = false;
     setAccessMessage(null);
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -162,7 +187,10 @@ export default function AdminLoginPage() {
       type: "email",
     });
 
-    if (error || !data.session) {
+    devLog("OTP verified", { email: normalizedEmail, hasSession: !!data.session, error: error?.message ?? null });
+
+    const session = data.session ?? (await supabase.auth.getSession()).data.session;
+    if (error || !session) {
       trackLeadEvent({
         event_type: "login_failed",
         email: normalizedEmail,
@@ -171,16 +199,14 @@ export default function AdminLoginPage() {
         failure_reason: error?.message ?? "otp_invalid",
         route: "/admin/login",
       });
-      const friendlyMessage = error?.message ?? "Invalid or expired code";
+      const friendlyMessage = error?.message ?? "OTP verified but no session was created";
       setAccessMessage(friendlyMessage);
       toast.error(friendlyMessage);
       setLoading(false);
       return;
     }
 
-    devLog("OTP verified", { email: normalizedEmail, hasSession: !!data.session });
-
-    const result = await refreshAndResolveAdminAccess(data.session);
+    const result = await refreshAndResolveAdminAccess(session);
     if (result.diagnostics) setDiag(result.diagnostics);
 
     if (!result.session || !result.isAdmin) {
@@ -203,9 +229,8 @@ export default function AdminLoginPage() {
 
     setOtp("");
     setDiag(result.diagnostics);
-    devLog("final redirect target", redirectTarget);
     toast.success("Signed in 🚀");
-    navigate(redirectTarget, { replace: true });
+    await handleResolvedAccess(result);
     setLoading(false);
   };
 
