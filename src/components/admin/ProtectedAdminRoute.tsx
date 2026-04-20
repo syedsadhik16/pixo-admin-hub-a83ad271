@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { DEV_BYPASS_AUTH } from "@/lib/devAuth";
 
 export function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   if (DEV_BYPASS_AUTH) return <>{children}</>;
 
   const { user, loading, isAdmin, accessError } = useAuthContext();
@@ -19,7 +20,9 @@ export function ProtectedAdminRoute({ children }: { children: React.ReactNode })
   }
 
   if (!user) return <Navigate to="/admin/login" replace />;
-  if (!isAdmin()) return <Navigate to="/admin/login" replace state={{ accessDenied: accessError ?? "Admin role required." }} />;
+  if (!isAdmin()) {
+    return <Navigate to="/admin/login" replace state={{ accessDenied: accessError ?? "Admin role required.", from: location.pathname }} />;
+  }
 
   return <>{children}</>;
 }

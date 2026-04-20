@@ -12,8 +12,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email } = await req.json();
+    const { email, userId } = await req.json();
     const normalized = String(email ?? "").trim().toLowerCase();
+    const normalizedUserId = typeof userId === "string" && userId.trim() ? userId.trim() : null;
     if (!normalized) {
       return new Response(JSON.stringify({ error: "email required" }), {
         status: 400,
@@ -29,11 +30,25 @@ Deno.serve(async (req) => {
     // Check auth user
     let hasAuthUser = false;
     let authUserId: string | null = null;
-    const { data: usersPage } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const match = usersPage?.users?.find((u) => u.email?.toLowerCase() === normalized);
-    if (match) {
-      hasAuthUser = true;
-      authUserId = match.id;
+    if (normalizedUserId) {
+      const { data: authUserData, error: authUserError } = await admin.auth.admin.getUserById(normalizedUserId);
+      const authUser = authUserData?.user ?? null;
+      if (!authUserError && authUser?.email?.toLowerCase() === normalized) {
+        hasAuthUser = true;
+        authUserId = authUser.id;
+      }
+    }
+
+    if (!hasAuthUser) {
+      for (let page = 1; page <= 20 && !hasAuthUser; page += 1) {
+        const { data: usersPage } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+        const match = usersPage?.users?.find((u) => u.email?.toLowerCase() === normalized);
+        if (match) {
+          hasAuthUser = true;
+          authUserId = match.id;
+        }
+        if (!usersPage?.users?.length || (usersPage.users.length < 200 && !match)) break;
+      }
     }
 
     // Check employee_profiles
@@ -63,7 +78,7 @@ Deno.serve(async (req) => {
         employeeRole: emp?.role ?? null,
         employeeStatus: emp?.status ?? null,
         hasAdminRole,
-        canAccessAdmin: hasAuthUser && !!emp && emp.role === "admin" && emp.status === "active",
+        canAccessAdmin: hasAuthUser && !!emp && emp.role === "admin" && emp.status === "active" && hasAdminRole,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

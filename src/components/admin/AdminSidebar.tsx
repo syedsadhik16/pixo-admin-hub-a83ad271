@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3, CreditCard, Users, BookOpen, Brain, Palette,
   Heart, Server, Shield, Search, LogOut, Zap,
@@ -49,8 +49,14 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile, roles, signOut, isFounder } = useAuthContext();
   const [search, setSearch] = useState("");
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/admin/login", { replace: true });
+  };
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
@@ -147,7 +153,7 @@ export function AdminSidebar() {
                   {primaryRole}
                 </Badge>
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut} className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground">
+              <Button variant="ghost" size="icon" onClick={() => void handleSignOut()} className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground">
                 <LogOut className="h-3.5 w-3.5" />
               </Button>
             </div>
