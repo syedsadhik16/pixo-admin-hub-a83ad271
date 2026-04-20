@@ -11,6 +11,11 @@ export interface AdminDiagnosticsResult {
   canAccessAdmin: boolean;
 }
 
+export interface AdminRedirectState {
+  accessDenied?: string;
+  from?: string;
+}
+
 export interface AdminEmployeeRecord {
   id?: string;
   employee_code?: string;
@@ -76,10 +81,10 @@ function messageFromDiagnostics(diag: AdminDiagnosticsResult | null) {
   return ACCESS_ERROR;
 }
 
-export async function fetchAdminDiagnostics(email: string): Promise<AdminDiagnosticsResult> {
+export async function fetchAdminDiagnostics(email: string, userId?: string | null): Promise<AdminDiagnosticsResult> {
   const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.functions.invoke("admin-access-check", {
-    body: { email: normalizedEmail },
+    body: { email: normalizedEmail, userId: userId ?? null },
   });
 
   if (error) throw error;
@@ -189,7 +194,11 @@ export async function refreshAndResolveAdminAccess(sessionOverride?: Session | n
   return resolveAdminAccess(data.session ?? session);
 }
 
-export function getAdminRedirectTarget() {
+export function getAdminRedirectTarget(from?: string | null) {
+  if (typeof from === "string" && from.startsWith("/admin/") && from !== "/admin/login") {
+    return from;
+  }
+
   return "/admin/dashboard";
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { resolveAdminAccess } from "@/lib/adminAccess";
@@ -23,6 +23,7 @@ interface AuthState {
 }
 
 export function useAuth() {
+  const syncRequestRef = useRef(0);
   const [state, setState] = useState<AuthState>({
     user: null,
     session: null,
@@ -32,12 +33,18 @@ export function useAuth() {
   });
 
   const syncAuthState = useCallback(async (session: Session | null) => {
+    const requestId = ++syncRequestRef.current;
+
     if (!session?.user) {
       setState({ user: null, session: null, employee: null, loading: false, accessError: null });
       return;
     }
 
+    setState((current) => ({ ...current, loading: true, accessError: null }));
+
     const result = await resolveAdminAccess(session);
+    if (syncRequestRef.current !== requestId) return;
+
     setState({
       user: result.user,
       session: result.session,
