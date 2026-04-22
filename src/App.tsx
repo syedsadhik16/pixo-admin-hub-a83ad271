@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminResetPasswordPage from "./pages/admin/AdminResetPasswordPage";
 import FounderHQPage from "./pages/admin/FounderHQPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import PaymentsPage from "./pages/admin/PaymentsPage";
@@ -38,6 +39,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/founder-hq" element={<ProtectedAdminRoute><FounderHQPage /></ProtectedAdminRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
