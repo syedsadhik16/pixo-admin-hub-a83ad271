@@ -56,6 +56,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       app_versions: {
         Row: {
           deployed_at: string | null
@@ -83,6 +104,42 @@ export type Database = {
           is_active?: boolean | null
           release_notes?: string | null
           version_name?: string
+        }
+        Relationships: []
+      }
+      attendance_records: {
+        Row: {
+          attendance_date: string
+          class_type: string | null
+          created_at: string
+          id: string
+          minutes_attended: number | null
+          reason: string | null
+          session_title: string | null
+          status: string
+          student_user_id: string
+        }
+        Insert: {
+          attendance_date: string
+          class_type?: string | null
+          created_at?: string
+          id?: string
+          minutes_attended?: number | null
+          reason?: string | null
+          session_title?: string | null
+          status: string
+          student_user_id: string
+        }
+        Update: {
+          attendance_date?: string
+          class_type?: string | null
+          created_at?: string
+          id?: string
+          minutes_attended?: number | null
+          reason?: string | null
+          session_title?: string | null
+          status?: string
+          student_user_id?: string
         }
         Relationships: []
       }
@@ -166,6 +223,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      billing_history: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          id: string
+          invoice_number: string | null
+          invoice_url: string | null
+          payment_date: string | null
+          payment_provider: string | null
+          payment_status: string | null
+          student_user_id: string
+          subscription_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_status?: string | null
+          student_user_id: string
+          subscription_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          payment_date?: string | null
+          payment_provider?: string | null
+          payment_status?: string | null
+          student_user_id?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_schedule: {
+        Row: {
+          assigned_by: string | null
+          class_status: string
+          created_at: string
+          curriculum_day_id: string
+          id: string
+          scheduled_date: string
+          student_user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          class_status?: string
+          created_at?: string
+          curriculum_day_id: string
+          id?: string
+          scheduled_date: string
+          student_user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          class_status?: string
+          created_at?: string
+          curriculum_day_id?: string
+          id?: string
+          scheduled_date?: string
+          student_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_schedule_curriculum_day_id_fkey"
+            columns: ["curriculum_day_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_days"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       curriculum_day_parts: {
         Row: {
@@ -606,6 +751,90 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_activity: {
+        Row: {
+          activity_date: string
+          activity_type: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          lesson_day: number | null
+          metadata: Json | null
+          score: number | null
+          student_user_id: string
+          title: string
+        }
+        Insert: {
+          activity_date: string
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lesson_day?: number | null
+          metadata?: Json | null
+          score?: number | null
+          student_user_id: string
+          title: string
+        }
+        Update: {
+          activity_date?: string
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lesson_day?: number | null
+          metadata?: Json | null
+          score?: number | null
+          student_user_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      monthly_reports: {
+        Row: {
+          attendance_percentage: number | null
+          created_at: string
+          id: string
+          improvement_areas: Json | null
+          lessons_completed: number | null
+          month_label: string
+          premium_insights: Json | null
+          recommendations: Json | null
+          strengths: Json | null
+          student_user_id: string
+          summary: string | null
+        }
+        Insert: {
+          attendance_percentage?: number | null
+          created_at?: string
+          id?: string
+          improvement_areas?: Json | null
+          lessons_completed?: number | null
+          month_label: string
+          premium_insights?: Json | null
+          recommendations?: Json | null
+          strengths?: Json | null
+          student_user_id: string
+          summary?: string | null
+        }
+        Update: {
+          attendance_percentage?: number | null
+          created_at?: string
+          id?: string
+          improvement_areas?: Json | null
+          lessons_completed?: number | null
+          month_label?: string
+          premium_insights?: Json | null
+          recommendations?: Json | null
+          strengths?: Json | null
+          student_user_id?: string
+          summary?: string | null
+        }
+        Relationships: []
+      }
       parent_children: {
         Row: {
           created_at: string | null
@@ -657,6 +886,42 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           visibility_flags?: Json | null
+        }
+        Relationships: []
+      }
+      parent_notifications: {
+        Row: {
+          body: string | null
+          category: string | null
+          created_at: string
+          id: string
+          notification_type: string | null
+          parent_user_id: string
+          read: boolean | null
+          student_user_id: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          notification_type?: string | null
+          parent_user_id: string
+          read?: boolean | null
+          student_user_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          notification_type?: string | null
+          parent_user_id?: string
+          read?: boolean | null
+          student_user_id?: string | null
+          title?: string
         }
         Relationships: []
       }
@@ -798,6 +1063,69 @@ export type Database = {
           signature?: string | null
           status?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      performance_snapshots: {
+        Row: {
+          attendance_percentage: number | null
+          confidence_score: number | null
+          created_at: string
+          fluency_score: number | null
+          id: string
+          lessons_completed: number | null
+          period_type: string
+          phonics_score: number | null
+          pronunciation_score: number | null
+          reading_sessions: number | null
+          snapshot_date: string
+          speaking_attempts: number | null
+          student_user_id: string
+          summary: string | null
+          time_spent_minutes: number | null
+          vocabulary_score: number | null
+          weak_sounds: Json | null
+          weak_words: Json | null
+        }
+        Insert: {
+          attendance_percentage?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          fluency_score?: number | null
+          id?: string
+          lessons_completed?: number | null
+          period_type: string
+          phonics_score?: number | null
+          pronunciation_score?: number | null
+          reading_sessions?: number | null
+          snapshot_date: string
+          speaking_attempts?: number | null
+          student_user_id: string
+          summary?: string | null
+          time_spent_minutes?: number | null
+          vocabulary_score?: number | null
+          weak_sounds?: Json | null
+          weak_words?: Json | null
+        }
+        Update: {
+          attendance_percentage?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          fluency_score?: number | null
+          id?: string
+          lessons_completed?: number | null
+          period_type?: string
+          phonics_score?: number | null
+          pronunciation_score?: number | null
+          reading_sessions?: number | null
+          snapshot_date?: string
+          speaking_attempts?: number | null
+          student_user_id?: string
+          summary?: string | null
+          time_spent_minutes?: number | null
+          vocabulary_score?: number | null
+          weak_sounds?: Json | null
+          weak_words?: Json | null
         }
         Relationships: []
       }
@@ -1051,6 +1379,90 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          billing_cycle_months: number | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          is_premium: boolean | null
+          level_access: Json | null
+          payment_status: string | null
+          plan_name: string
+          razorpay_customer_id: string | null
+          razorpay_subscription_id: string | null
+          start_date: string | null
+          status: string | null
+          student_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle_months?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          is_premium?: boolean | null
+          level_access?: Json | null
+          payment_status?: string | null
+          plan_name?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          student_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle_months?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          is_premium?: boolean | null
+          level_access?: Json | null
+          payment_status?: string | null
+          plan_name?: string
+          razorpay_customer_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          student_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_requests: {
+        Row: {
+          created_at: string
+          id: string
+          issue_type: string | null
+          message: string
+          parent_user_id: string
+          status: string | null
+          student_user_id: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_type?: string | null
+          message: string
+          parent_user_id: string
+          status?: string | null
+          student_user_id?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_type?: string | null
+          message?: string
+          parent_user_id?: string
+          status?: string | null
+          student_user_id?: string | null
+          subject?: string
+        }
+        Relationships: []
+      }
       system_sync_logs: {
         Row: {
           created_at: string | null
@@ -1216,6 +1628,48 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reports: {
+        Row: {
+          confidence_note: string | null
+          created_at: string
+          id: string
+          improvement_areas: Json | null
+          premium_insights: Json | null
+          recommendations: Json | null
+          report_status: string | null
+          strengths: Json | null
+          student_user_id: string
+          summary: string | null
+          week_label: string
+        }
+        Insert: {
+          confidence_note?: string | null
+          created_at?: string
+          id?: string
+          improvement_areas?: Json | null
+          premium_insights?: Json | null
+          recommendations?: Json | null
+          report_status?: string | null
+          strengths?: Json | null
+          student_user_id: string
+          summary?: string | null
+          week_label: string
+        }
+        Update: {
+          confidence_note?: string | null
+          created_at?: string
+          id?: string
+          improvement_areas?: Json | null
+          premium_insights?: Json | null
+          recommendations?: Json | null
+          report_status?: string | null
+          strengths?: Json | null
+          student_user_id?: string
+          summary?: string | null
+          week_label?: string
         }
         Relationships: []
       }
