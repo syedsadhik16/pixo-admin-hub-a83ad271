@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, Download } from "lucide-react";
+import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { exportAndDownload } from "@/lib/admin/csv";
@@ -46,6 +46,7 @@ export default function EmployeesPage() {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EmployeeRow | null>(null);
   const [resetTarget, setResetTarget] = useState<EmployeeRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<EmployeeRow | null>(null);
   const [resetResult, setResetResult] = useState<{ email: string; password: string } | null>(null);
 
   const [createForm, setCreateForm] = useState({
@@ -159,6 +160,25 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
       queryClient.invalidateQueries({ queryKey: ["sales-employees"] });
       toast.success(`Status: ${data?.employee?.status ?? "updated"}`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteEmployee = useMutation({
+    mutationFn: async (emp: EmployeeRow) => {
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: { mode: "delete", employee_id: emp.id },
+      });
+      if (error) throw new Error(error.message ?? "Delete failed");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-employees"] });
+      if (data?.warning) toast.warning(data.warning);
+      else toast.success("Employee deleted");
+      setDeleteTarget(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -352,6 +372,14 @@ export default function EmployeesPage() {
                             <Power className="h-3 w-3" />
                             {e.status === "active" ? "Deactivate" : "Activate"}
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[11px] gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget(e)}
+                          >
+                            <Trash2 className="h-3 w-3" />Delete
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -458,6 +486,29 @@ export default function EmployeesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete employee?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <strong>{deleteTarget?.name}</strong> ({deleteTarget?.email || "no email"})
+              from the employee registry, revoke their role, and delete their login. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteEmployee.mutate(deleteTarget)}
+              disabled={deleteEmployee.isPending}
+            >
+              {deleteEmployee.isPending ? "Deleting..." : "Delete permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }

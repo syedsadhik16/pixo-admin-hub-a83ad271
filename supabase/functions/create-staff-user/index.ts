@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Mode = "create" | "reset_password" | "update_profile" | "toggle_status";
+type Mode = "create" | "reset_password" | "update_profile" | "toggle_status" | "delete";
 
 interface Payload {
   mode?: Mode;
@@ -210,6 +210,45 @@ serve(async (req) => {
         .single();
       if (error) return json({ error: error.message }, 500);
       return json({ success: true, mode: "toggle_status", employee: data });
+    }
+
+    // ---------- DELETE ----------
+    if (mode === "delete") {
+      if (!body.employee_id) return json({ error: "employee_id required" }, 400);
+
+      const { data: emp, error: getErr } = await supabaseAdmin
+        .from("employee_profiles")
+        .select("id, email")
+        .eq("id", body.employee_id)
+        .maybeSingle();
+      if (getErr) return json({ error: getErr.message }, 500);
+      if (!emp) return json({ error: "Employee not found" }, 404);
+
+      // Resolve auth user id by email (if any)
+      let userId: string | null = null;
+      if (emp.email) {
+        const { data: list } = await supabaseAdmin.auth.admin.listUsers();
+        userId = list?.users?.find((u) => u.email?.toLowerCase() === emp.email!.toLowerCase())?.id ?? null;
+      }
+
+      // Delete employee_profiles row
+      const { error: delEmpErr } = await supabaseAdmin
+        .from("employee_profiles")
+        .delete()
+        .eq("id", emp.id);
+      if (delEmpErr) return json({ error: delEmpErr.message }, 500);
+
+      // Best-effort cleanup of role + profile + auth user
+      if (userId) {
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+        await supabaseAdmin.from("profiles").delete().eq("id", userId);
+        const { error: authDelErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (authDelErr) {
+          return json({ success: true, mode: "delete", warning: `Profile removed but auth deletion failed: ${authDelErr.message}` });
+        }
+      }
+
+      return json({ success: true, mode: "delete", employee_id: emp.id });
     }
 
     return json({ error: `Unknown mode: ${mode}` }, 400);
