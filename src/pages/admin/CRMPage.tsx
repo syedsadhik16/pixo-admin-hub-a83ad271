@@ -129,6 +129,11 @@ export default function CRMPage() {
           assessment_score: score,
           assessment_date: perf?.snapshot_date ?? null,
           assessment_summary: perf?.summary ?? null,
+          fluency_score: perf?.fluency_score ?? null,
+          phonics_score: perf?.phonics_score ?? null,
+          pronunciation_score: perf?.pronunciation_score ?? null,
+          vocabulary_score: perf?.vocabulary_score ?? null,
+          confidence_score: perf?.confidence_score ?? null,
         };
       });
     },
