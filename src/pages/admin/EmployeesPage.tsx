@@ -182,6 +182,8 @@ export default function EmployeesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const total = employees?.length ?? 0;
   const active = employees?.filter(e => e.status === "active").length ?? 0;
 
   function openEdit(emp: EmployeeRow) {
