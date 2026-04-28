@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Mode = "create" | "reset_password" | "update_profile" | "toggle_status";
+type Mode = "create" | "reset_password" | "update_profile" | "toggle_status" | "delete";
 
 interface Payload {
   mode?: Mode;
