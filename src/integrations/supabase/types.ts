@@ -502,9 +502,59 @@ export type Database = {
           },
         ]
       }
+      employee_invites: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          designation: string | null
+          id: string
+          invited_email: string | null
+          notes: string | null
+          preset_employee_code: string | null
+          preset_role: string | null
+          status: string
+          token: string
+          used_at: string | null
+          used_by_user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          designation?: string | null
+          id?: string
+          invited_email?: string | null
+          notes?: string | null
+          preset_employee_code?: string | null
+          preset_role?: string | null
+          status?: string
+          token: string
+          used_at?: string | null
+          used_by_user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          designation?: string | null
+          id?: string
+          invited_email?: string | null
+          notes?: string | null
+          preset_employee_code?: string | null
+          preset_role?: string | null
+          status?: string
+          token?: string
+          used_at?: string | null
+          used_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       employee_profiles: {
         Row: {
+          category: string
           created_at: string
+          designation: string | null
           email: string | null
           employee_code: string
           id: string
@@ -516,7 +566,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string
           created_at?: string
+          designation?: string | null
           email?: string | null
           employee_code: string
           id?: string
@@ -528,7 +580,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string
           created_at?: string
+          designation?: string | null
           email?: string | null
           employee_code?: string
           id?: string
@@ -1679,6 +1733,7 @@ export type Database = {
     }
     Functions: {
       calc_commission: { Args: { _amount: number }; Returns: number }
+      can_invite_employees: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
