@@ -372,6 +372,14 @@ export default function EmployeesPage() {
                             <Power className="h-3 w-3" />
                             {e.status === "active" ? "Deactivate" : "Activate"}
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[11px] gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget(e)}
+                          >
+                            <Trash2 className="h-3 w-3" />Delete
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
