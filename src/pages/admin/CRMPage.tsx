@@ -43,6 +43,11 @@ interface LeadRow {
   assessment_score: number | null;
   assessment_date: string | null;
   assessment_summary: string | null;
+  fluency_score: number | null;
+  phonics_score: number | null;
+  pronunciation_score: number | null;
+  vocabulary_score: number | null;
+  confidence_score: number | null;
 }
 
 function stageVariant(s: Stage) {
