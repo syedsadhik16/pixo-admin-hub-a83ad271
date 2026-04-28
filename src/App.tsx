@@ -25,6 +25,7 @@ import ExportsPage from "./pages/admin/ExportsPage";
 import SalesPage from "./pages/admin/SalesPage";
 import LeadsPage from "./pages/admin/LeadsPage";
 import B2BPage from "./pages/admin/B2BPage";
+import JoinPage from "./pages/JoinPage";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/join/:token" element={<JoinPage />} />
             <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/founder-hq" element={<ProtectedAdminRoute><FounderHQPage /></ProtectedAdminRoute>} />

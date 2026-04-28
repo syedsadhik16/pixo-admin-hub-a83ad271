@@ -27,6 +27,7 @@ import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, 
 import { useState } from "react";
 import { toast } from "sonner";
 import { exportAndDownload } from "@/lib/admin/csv";
+import { EmployeeInvitesCard } from "@/components/admin/EmployeeInvitesCard";
 
 interface EmployeeRow {
   id: string;
@@ -280,6 +281,8 @@ export default function EmployeesPage() {
           <MetricCard title="Inactive" value={total - active} icon={Power} />
           <MetricCard title="Risk Flags" value={0} icon={AlertTriangle} changeType="neutral" change="None" />
         </div>
+
+        <EmployeeInvitesCard />
 
         <Card>
           <CardHeader>
