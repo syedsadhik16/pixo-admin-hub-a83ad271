@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Link2, Copy, Trash2, Briefcase, TrendingUp } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link2, Copy, Trash2, Briefcase, TrendingUp, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/admin/EmptyState";
 
@@ -26,6 +27,7 @@ export function EmployeeInvitesCard() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [generated, setGenerated] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "pending" | "used" | "revoked">("all");
   const [form, setForm] = useState({
     category: "office" as "office" | "commission",
     designation: "",
@@ -169,77 +171,120 @@ export function EmployeeInvitesCard() {
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
-        {!invites || invites.length === 0 ? (
-          <EmptyState icon={Link2} title="No invites yet" description="Generate a one-time link to onboard a new employee." />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-mono-label">Category</TableHead>
-                <TableHead className="font-mono-label">Designation</TableHead>
-                <TableHead className="font-mono-label">Email</TableHead>
-                <TableHead className="font-mono-label">Status</TableHead>
-                <TableHead className="font-mono-label">Created</TableHead>
-                <TableHead className="font-mono-label text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invites.map((inv: any) => {
-                const link = `${window.location.origin}/join/${inv.token}`;
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell>
-                      <Badge variant={inv.category === "commission" ? "default" : "secondary"} className="text-[10px] capitalize">
-                        {inv.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">{inv.designation || inv.preset_role || "—"}</TableCell>
-                    <TableCell className="text-xs">{inv.invited_email || "—"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={inv.status === "pending" ? "outline" : inv.status === "used" ? "default" : "destructive"}
-                        className="text-[10px] capitalize"
-                      >
-                        {inv.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[11px] text-muted-foreground">
-                      {new Date(inv.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {inv.status === "pending" && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-[11px] gap-1"
-                              onClick={() => { navigator.clipboard.writeText(link); toast.success("Link copied"); }}
-                            >
-                              <Copy className="h-3 w-3" /> Copy
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-[11px] gap-1 text-destructive"
-                              onClick={() => revoke.mutate(inv.id)}
-                              disabled={revoke.isPending}
-                            >
-                              <Trash2 className="h-3 w-3" /> Revoke
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
+      <CardContent className="space-y-3">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <TabsList className="h-8">
+            <TabsTrigger value="all" className="text-xs gap-1.5">
+              All <Badge variant="secondary" className="text-[9px] h-4 px-1">{invites?.length ?? 0}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs gap-1.5">
+              <Clock className="h-3 w-3" /> Pending
+              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                {invites?.filter((i: any) => i.status === "pending").length ?? 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="used" className="text-xs gap-1.5">
+              <CheckCircle2 className="h-3 w-3" /> Used
+              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                {invites?.filter((i: any) => i.status === "used").length ?? 0}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="revoked" className="text-xs gap-1.5">
+              <XCircle className="h-3 w-3" /> Revoked
+              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                {invites?.filter((i: any) => i.status === "revoked").length ?? 0}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {(() => {
+          const filtered = (invites ?? []).filter((i: any) => filter === "all" || i.status === filter);
+          if (filtered.length === 0) {
+            return (
+              <EmptyState
+                icon={Link2}
+                title={filter === "all" ? "No invites yet" : `No ${filter} invites`}
+                description={filter === "all" ? "Generate a one-time link to onboard a new employee." : "Try a different filter."}
+              />
+            );
+          }
+          return (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-mono-label">Status</TableHead>
+                  <TableHead className="font-mono-label">Category</TableHead>
+                  <TableHead className="font-mono-label">Role</TableHead>
+                  <TableHead className="font-mono-label">Designation</TableHead>
+                  <TableHead className="font-mono-label">Invited Email</TableHead>
+                  <TableHead className="font-mono-label">Created</TableHead>
+                  <TableHead className="font-mono-label">Used At</TableHead>
+                  <TableHead className="font-mono-label text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((inv: any) => {
+                  const link = `${window.location.origin}/join/${inv.token}`;
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell>
+                        <Badge
+                          variant={inv.status === "pending" ? "outline" : inv.status === "used" ? "default" : "destructive"}
+                          className="text-[10px] capitalize"
+                        >
+                          {inv.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={inv.category === "commission" ? "default" : "secondary"} className="text-[10px] capitalize">
+                          {inv.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs capitalize">{inv.preset_role?.replace("_", " ") || "—"}</TableCell>
+                      <TableCell className="text-xs">{inv.designation || "—"}</TableCell>
+                      <TableCell className="text-xs">{inv.invited_email || "—"}</TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        {new Date(inv.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        {inv.used_at ? new Date(inv.used_at).toLocaleString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {inv.status === "pending" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-[11px] gap-1"
+                                onClick={() => { navigator.clipboard.writeText(link); toast.success("Link copied"); }}
+                              >
+                                <Copy className="h-3 w-3" /> Copy
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-[11px] gap-1 text-destructive"
+                                onClick={() => revoke.mutate(inv.id)}
+                                disabled={revoke.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" /> Revoke
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          );
+        })()}
+
         {pending.length > 0 && (
-          <p className="text-[11px] text-muted-foreground mt-2">
+          <p className="text-[11px] text-muted-foreground">
             {pending.length} pending invite{pending.length === 1 ? "" : "s"} · Each link works only once.
           </p>
         )}
@@ -247,3 +292,4 @@ export function EmployeeInvitesCard() {
     </Card>
   );
 }
+
