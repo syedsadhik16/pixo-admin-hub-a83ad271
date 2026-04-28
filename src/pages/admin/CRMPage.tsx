@@ -28,12 +28,19 @@ interface LeadRow {
   user_type: string;
   signup_date: string | null;
   signup_source: string | null;
+  location: string | null;
+  grade: string | null;
+  board: string | null;
+  age: number | null;
   stage: Stage;
   remarks: string;
   next_follow_up: string | null;
   pricing_visited: boolean;
   payment_visited: boolean;
   subscription_status: string;
+  assessment_score: number | null;
+  assessment_date: string | null;
+  assessment_summary: string | null;
 }
 
 function stageVariant(s: Stage) {
@@ -55,24 +62,45 @@ export default function CRMPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-crm-leads"],
     queryFn: async (): Promise<LeadRow[]> => {
-      const [profilesRes, pipelineRes, studentsRes, parentsRes, entRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, phone, created_at, signup_source, user_type"),
+      const [profilesRes, pipelineRes, studentsRes, parentsRes, entRes, perfRes] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, email, phone, created_at, signup_source, user_type, location"),
         (supabase.from as any)("lead_pipeline").select("*"),
-        supabase.from("student_profiles").select("user_id"),
+        supabase.from("student_profiles").select("user_id, age, grade, school_board"),
         supabase.from("parent_profiles").select("user_id"),
         supabase.from("user_entitlements").select("user_id, is_active, plan_name"),
+        supabase.from("performance_snapshots")
+          .select("student_user_id, snapshot_date, fluency_score, phonics_score, pronunciation_score, vocabulary_score, confidence_score, summary")
+          .order("snapshot_date", { ascending: false })
+          .limit(2000),
       ]);
 
       const pipeMap = new Map<string, any>(((pipelineRes as any).data ?? []).map((p: any) => [p.user_id, p]));
-      const studentSet = new Set((studentsRes.data ?? []).map(s => s.user_id));
+      const studentMap = new Map((studentsRes.data ?? []).map(s => [s.user_id, s]));
       const parentSet = new Set((parentsRes.data ?? []).map(p => p.user_id));
       const entMap = new Map((entRes.data ?? []).map(e => [e.user_id, e]));
+
+      // Take the latest snapshot per student
+      const perfMap = new Map<string, any>();
+      (perfRes.data ?? []).forEach((row: any) => {
+        if (!perfMap.has(row.student_user_id)) perfMap.set(row.student_user_id, row);
+      });
+
+      const avg = (...vals: (number | null | undefined)[]) => {
+        const nums = vals.filter((v): v is number => typeof v === "number");
+        if (nums.length === 0) return null;
+        return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+      };
 
       return (profilesRes.data ?? []).map(p => {
         const pipe = pipeMap.get(p.id);
         const ent = entMap.get(p.id);
-        const userType = p.user_type ?? (studentSet.has(p.id) ? "student" : parentSet.has(p.id) ? "parent" : "unknown");
+        const stu: any = studentMap.get(p.id);
+        const userType = p.user_type ?? (stu ? "student" : parentSet.has(p.id) ? "parent" : "unknown");
         const subStatus = ent?.is_active ? (ent.plan_name ?? "active") : "none";
+        const perf = perfMap.get(p.id);
+        const score = perf
+          ? avg(perf.fluency_score, perf.phonics_score, perf.pronunciation_score, perf.vocabulary_score, perf.confidence_score)
+          : null;
         return {
           user_id: p.id,
           name: p.full_name ?? "—",
@@ -81,12 +109,19 @@ export default function CRMPage() {
           user_type: userType,
           signup_date: p.created_at,
           signup_source: p.signup_source,
+          location: p.location ?? null,
+          grade: stu?.grade ?? null,
+          board: stu?.school_board ?? null,
+          age: stu?.age ?? null,
           stage: (pipe?.stage ?? (ent?.is_active ? "converted" : "cold")) as Stage,
           remarks: pipe?.remarks ?? "",
           next_follow_up: pipe?.next_follow_up_at ?? null,
           pricing_visited: !!pipe?.pricing_page_visited,
           payment_visited: !!pipe?.payment_page_visited,
           subscription_status: subStatus,
+          assessment_score: score,
+          assessment_date: perf?.snapshot_date ?? null,
+          assessment_summary: perf?.summary ?? null,
         };
       });
     },
@@ -143,9 +178,16 @@ export default function CRMPage() {
         { key: "email", label: "Email" },
         { key: "phone", label: "Phone" },
         { key: "user_type", label: "User Type" },
+        { key: "grade", label: "Grade" },
+        { key: "board", label: "Board" },
+        { key: "age", label: "Age" },
+        { key: "location", label: "Location" },
         { key: "signup_date", label: "Signup Date" },
         { key: "signup_source", label: "Source" },
         { key: "stage", label: "Lead Stage" },
+        { key: "assessment_score", label: "Assessment Score" },
+        { key: "assessment_date", label: "Assessment Date" },
+        { key: "assessment_summary", label: "Assessment Summary" },
         { key: "remarks", label: "Remarks" },
         { key: "next_follow_up", label: "Next Follow-Up" },
         { key: "pricing_visited", label: "Pricing Visited" },
@@ -206,7 +248,10 @@ export default function CRMPage() {
                     <TableHead className="font-mono-label">Lead</TableHead>
                     <TableHead className="font-mono-label">Contact</TableHead>
                     <TableHead className="font-mono-label">Type</TableHead>
+                    <TableHead className="font-mono-label">Grade / Board</TableHead>
+                    <TableHead className="font-mono-label">Source</TableHead>
                     <TableHead className="font-mono-label">Stage</TableHead>
+                    <TableHead className="font-mono-label">Assessment</TableHead>
                     <TableHead className="font-mono-label">Funnel</TableHead>
                     <TableHead className="font-mono-label">Follow-Up</TableHead>
                     <TableHead className="font-mono-label">Remarks</TableHead>
@@ -218,14 +263,38 @@ export default function CRMPage() {
                     <TableRow key={r.user_id}>
                       <TableCell className="text-xs font-medium">
                         <div>{r.name}</div>
-                        <div className="text-muted-foreground text-[10px]">{r.signup_date ? new Date(r.signup_date).toLocaleDateString() : "—"}</div>
+                        <div className="text-muted-foreground text-[10px]">
+                          {r.signup_date ? new Date(r.signup_date).toLocaleDateString() : "—"}
+                          {r.location ? ` · ${r.location}` : ""}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div>{r.email}</div>
                         <div className="text-muted-foreground text-[10px]">{r.phone}</div>
                       </TableCell>
                       <TableCell className="text-xs capitalize">{r.user_type}</TableCell>
+                      <TableCell className="text-xs">
+                        {r.grade || r.board ? (
+                          <>
+                            <div>{r.grade ?? "—"}</div>
+                            <div className="text-muted-foreground text-[10px]">
+                              {r.board ?? "—"}{r.age ? ` · age ${r.age}` : ""}
+                            </div>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-xs">{r.signup_source || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell><Badge variant={stageVariant(r.stage)} className="capitalize">{r.stage}</Badge></TableCell>
+                      <TableCell className="text-xs">
+                        {r.assessment_score !== null ? (
+                          <>
+                            <div className="font-semibold">{r.assessment_score}/100</div>
+                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate" title={r.assessment_summary ?? ""}>
+                              {r.assessment_summary ?? (r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : "")}
+                            </div>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex gap-1">
                           {r.pricing_visited && <Badge variant="outline" className="text-[9px] px-1">Pricing</Badge>}
