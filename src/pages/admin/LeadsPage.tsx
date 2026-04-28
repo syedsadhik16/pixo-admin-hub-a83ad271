@@ -2,12 +2,13 @@
 // Shows: login attempts, payment funnel, hot leads, failed payments, pipeline summary.
 // All data is live from public.lead_events, payment_funnel_events, lead_pipeline.
 
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
+import { LiveIndicator } from "@/components/admin/LiveIndicator";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Activity, Target, Filter, XCircle, Flame, Search, Download, LogIn } from "lucide-react";
+import { Activity, Target, Filter, XCircle, Flame, Search, Download, LogIn, Users } from "lucide-react";
+import { useRealtimeChannel } from "@/hooks/useRealtimeChannel";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
@@ -43,7 +45,51 @@ function stageColor(s: string) {
 }
 
 export default function LeadsPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [signupSearch, setSignupSearch] = useState("");
+
+  // ---- All registered users (live) ----
+  const { data: signups, isLoading: loadingSignups } = useQuery({
+    queryKey: ["admin-all-signups"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, user_type, signup_source, location, last_login_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 15_000,
+  });
+
+  // Realtime — refresh when a new signup, login, or payment event arrives
+  const channelStatus = useRealtimeChannel("leads-live", [
+    {
+      table: "profiles",
+      event: "*",
+      callback: () => queryClient.invalidateQueries({ queryKey: ["admin-all-signups"] }),
+    },
+    {
+      table: "lead_events",
+      event: "INSERT",
+      callback: () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-login-events"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-all-signups"] });
+      },
+    },
+    {
+      table: "payment_funnel_events",
+      event: "INSERT",
+      callback: () => queryClient.invalidateQueries({ queryKey: ["admin-payment-funnel-events"] }),
+    },
+    {
+      table: "lead_pipeline",
+      event: "*",
+      callback: () => queryClient.invalidateQueries({ queryKey: ["admin-lead-pipeline"] }),
+    },
+  ]);
 
   // ---- Login attempts ----
   const { data: loginEvents, isLoading: loadingLogins } = useQuery({
