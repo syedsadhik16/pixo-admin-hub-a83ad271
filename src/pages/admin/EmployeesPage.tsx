@@ -46,6 +46,7 @@ export default function EmployeesPage() {
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EmployeeRow | null>(null);
   const [resetTarget, setResetTarget] = useState<EmployeeRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<EmployeeRow | null>(null);
   const [resetResult, setResetResult] = useState<{ email: string; password: string } | null>(null);
 
   const [createForm, setCreateForm] = useState({
