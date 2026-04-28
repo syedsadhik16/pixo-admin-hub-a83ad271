@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, Download } from "lucide-react";
+import { Users, UserPlus, Shield, AlertTriangle, KeyRound, Pencil, Power, Copy, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { exportAndDownload } from "@/lib/admin/csv";
