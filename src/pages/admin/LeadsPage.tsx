@@ -247,11 +247,44 @@ export default function LeadsPage() {
     toast.success("Funnel CSV exported");
   }
 
+  const filteredSignups = useMemo(() => {
+    if (!signupSearch) return signups ?? [];
+    const t = signupSearch.toLowerCase();
+    return (signups ?? []).filter(s =>
+      (s.full_name ?? "").toLowerCase().includes(t) ||
+      (s.email ?? "").toLowerCase().includes(t) ||
+      (s.phone ?? "").toLowerCase().includes(t),
+    );
+  }, [signups, signupSearch]);
+
+  async function exportSignups() {
+    await exportAndDownload(
+      `pixo-signups-${new Date().toISOString().slice(0, 10)}`,
+      filteredSignups,
+      [
+        { key: "created_at", label: "Signed Up" },
+        { key: "full_name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "phone", label: "Phone" },
+        { key: "user_type", label: "Type" },
+        { key: "signup_source", label: "Source" },
+        { key: "location", label: "Location" },
+        { key: "last_login_at", label: "Last Login" },
+      ],
+      "registered_users",
+    );
+    toast.success("Signups CSV exported");
+  }
+
   return (
-    <AdminLayout title="Leads & Login Tracking" subtitle="Login attempts, payment intents and lead pipeline — all live">
+    <AdminLayout title="Leads & Login Tracking" subtitle="Live signups, login attempts, payment intents and pipeline">
       <div className="space-y-6 animate-fade-in">
-        {/* Pipeline summary */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {/* Top metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div className="relative">
+            <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+            <MetricCard title="Total Signups" value={(signups ?? []).length} change="Registered users" changeType="neutral" icon={Users} />
+          </div>
           <MetricCard title="Cold" value={pipelineCounts.cold} change="Signup only" changeType="neutral" icon={Target} />
           <MetricCard title="Warm" value={pipelineCounts.warm} change="Login attempted" changeType="neutral" icon={LogIn} />
           <MetricCard title="Hot" value={pipelineCounts.hot} change="Payment intent" changeType="negative" icon={Flame} />
@@ -259,14 +292,87 @@ export default function LeadsPage() {
           <MetricCard title="Dropped" value={pipelineCounts.dropped} change="Abandoned" changeType="neutral" icon={XCircle} />
         </div>
 
-        <Tabs defaultValue="logins" className="space-y-4">
+        <Tabs defaultValue="signups" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="signups">All Signups</TabsTrigger>
             <TabsTrigger value="logins">Login Attempts</TabsTrigger>
             <TabsTrigger value="funnel">Payment Funnel</TabsTrigger>
             <TabsTrigger value="hot">Hot Leads</TabsTrigger>
             <TabsTrigger value="failed">Failed Payments</TabsTrigger>
             <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           </TabsList>
+
+          {/* All Signups */}
+          <TabsContent value="signups" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Registered Users ({filteredSignups.length})
+                    <LiveIndicator status={channelStatus} className="ml-2" />
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search name / email / phone..."
+                        value={signupSearch}
+                        onChange={e => setSignupSearch(e.target.value)}
+                        className="h-8 pl-8 text-xs w-64"
+                      />
+                    </div>
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={exportSignups}>
+                      <Download className="h-3 w-3" /> Export CSV
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingSignups ? <LoadingSpinner /> : filteredSignups.length === 0 ? (
+                  <EmptyState
+                    icon={Users}
+                    title="Waiting for first signup…"
+                    description="Every new account that registers in the Student or Parent app will appear here in real time."
+                  />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-mono-label">Signed Up</TableHead>
+                        <TableHead className="font-mono-label">Name</TableHead>
+                        <TableHead className="font-mono-label">Email</TableHead>
+                        <TableHead className="font-mono-label">Phone</TableHead>
+                        <TableHead className="font-mono-label">Type</TableHead>
+                        <TableHead className="font-mono-label">Source</TableHead>
+                        <TableHead className="font-mono-label">Last Login</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSignups.map(s => (
+                        <TableRow key={s.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {s.created_at ? new Date(s.created_at).toLocaleString() : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs font-medium">{s.full_name || "—"}</TableCell>
+                          <TableCell className="text-xs">{s.email || "—"}</TableCell>
+                          <TableCell className="text-xs">{s.phone || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {s.user_type ? (
+                              <Badge variant="outline" className="capitalize text-[10px]">{s.user_type}</Badge>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{s.signup_source || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {s.last_login_at ? new Date(s.last_login_at).toLocaleString() : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Login Attempts */}
           <TabsContent value="logins" className="space-y-4">
