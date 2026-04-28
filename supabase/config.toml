@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.admin-access-check]
 verify_jwt = false
+
+[functions.accept-employee-invite]
+verify_jwt = false
