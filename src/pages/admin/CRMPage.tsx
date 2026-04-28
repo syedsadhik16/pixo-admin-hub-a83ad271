@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, Target, Download, Edit2 } from "lucide-react";
+import { Search, Target, Download, Edit2, Sparkles } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
@@ -41,6 +43,11 @@ interface LeadRow {
   assessment_score: number | null;
   assessment_date: string | null;
   assessment_summary: string | null;
+  fluency_score: number | null;
+  phonics_score: number | null;
+  pronunciation_score: number | null;
+  vocabulary_score: number | null;
+  confidence_score: number | null;
 }
 
 function stageVariant(s: Stage) {
@@ -55,6 +62,7 @@ export default function CRMPage() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<"all" | Stage>("all");
   const [editing, setEditing] = useState<LeadRow | null>(null);
+  const [assessing, setAssessing] = useState<LeadRow | null>(null);
   const [editStage, setEditStage] = useState<Stage>("cold");
   const [editRemarks, setEditRemarks] = useState("");
   const [editFollowUp, setEditFollowUp] = useState("");
@@ -122,6 +130,11 @@ export default function CRMPage() {
           assessment_score: score,
           assessment_date: perf?.snapshot_date ?? null,
           assessment_summary: perf?.summary ?? null,
+          fluency_score: perf?.fluency_score ?? null,
+          phonics_score: perf?.phonics_score ?? null,
+          pronunciation_score: perf?.pronunciation_score ?? null,
+          vocabulary_score: perf?.vocabulary_score ?? null,
+          confidence_score: perf?.confidence_score ?? null,
         };
       });
     },
@@ -287,12 +300,19 @@ export default function CRMPage() {
                       <TableCell><Badge variant={stageVariant(r.stage)} className="capitalize">{r.stage}</Badge></TableCell>
                       <TableCell className="text-xs">
                         {r.assessment_score !== null ? (
-                          <>
-                            <div className="font-semibold">{r.assessment_score}/100</div>
-                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate" title={r.assessment_summary ?? ""}>
-                              {r.assessment_summary ?? (r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : "")}
+                          <button
+                            type="button"
+                            onClick={() => setAssessing(r)}
+                            className="text-left hover:text-primary transition-colors"
+                          >
+                            <div className="font-semibold flex items-center gap-1">
+                              {r.assessment_score}/100
+                              <Sparkles className="h-3 w-3 opacity-60" />
                             </div>
-                          </>
+                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate">
+                              {r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : ""}
+                            </div>
+                          </button>
                         ) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-xs">
@@ -344,6 +364,60 @@ export default function CRMPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!assessing} onOpenChange={o => !o && setAssessing(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Assessment — {assessing?.name}
+            </SheetTitle>
+            <SheetDescription>
+              Latest snapshot:{" "}
+              {assessing?.assessment_date
+                ? new Date(assessing.assessment_date).toLocaleDateString(undefined, { dateStyle: "medium" })
+                : "No assessment yet"}
+            </SheetDescription>
+          </SheetHeader>
+
+          {assessing && (
+            <div className="mt-6 space-y-5">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="font-mono-label text-muted-foreground">Overall Score</p>
+                <p className="text-3xl font-bold mt-1">
+                  {assessing.assessment_score ?? "—"}<span className="text-lg text-muted-foreground">/100</span>
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { label: "Fluency", value: assessing.fluency_score },
+                  { label: "Phonics", value: assessing.phonics_score },
+                  { label: "Pronunciation", value: assessing.pronunciation_score },
+                  { label: "Vocabulary", value: assessing.vocabulary_score },
+                  { label: "Confidence", value: assessing.confidence_score },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-medium">{s.label}</span>
+                      <span className="font-mono text-muted-foreground">
+                        {s.value !== null && s.value !== undefined ? `${Math.round(s.value)}/100` : "—"}
+                      </span>
+                    </div>
+                    <Progress value={s.value ?? 0} className="h-2" />
+                  </div>
+                ))}
+              </div>
+
+              {assessing.assessment_summary && (
+                <div className="rounded-lg border p-4">
+                  <p className="font-mono-label text-muted-foreground mb-2">AI Summary</p>
+                  <p className="text-sm leading-relaxed">{assessing.assessment_summary}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </AdminLayout>
   );
 }
