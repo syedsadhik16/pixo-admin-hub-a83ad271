@@ -300,12 +300,19 @@ export default function CRMPage() {
                       <TableCell><Badge variant={stageVariant(r.stage)} className="capitalize">{r.stage}</Badge></TableCell>
                       <TableCell className="text-xs">
                         {r.assessment_score !== null ? (
-                          <>
-                            <div className="font-semibold">{r.assessment_score}/100</div>
-                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate" title={r.assessment_summary ?? ""}>
-                              {r.assessment_summary ?? (r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : "")}
+                          <button
+                            type="button"
+                            onClick={() => setAssessing(r)}
+                            className="text-left hover:text-primary transition-colors"
+                          >
+                            <div className="font-semibold flex items-center gap-1">
+                              {r.assessment_score}/100
+                              <Sparkles className="h-3 w-3 opacity-60" />
                             </div>
-                          </>
+                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate">
+                              {r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : ""}
+                            </div>
+                          </button>
                         ) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-xs">
