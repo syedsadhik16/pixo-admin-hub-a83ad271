@@ -62,6 +62,7 @@ export default function CRMPage() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<"all" | Stage>("all");
   const [editing, setEditing] = useState<LeadRow | null>(null);
+  const [assessing, setAssessing] = useState<LeadRow | null>(null);
   const [editStage, setEditStage] = useState<Stage>("cold");
   const [editRemarks, setEditRemarks] = useState("");
   const [editFollowUp, setEditFollowUp] = useState("");
