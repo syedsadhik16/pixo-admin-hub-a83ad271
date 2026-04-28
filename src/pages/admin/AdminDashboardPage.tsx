@@ -154,9 +154,40 @@ export default function AdminDashboardPage() {
   const { data: leadCount } = useQuery({
     queryKey: ["dash-lead-count"],
     queryFn: async () => {
-      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("lead_pipeline")
+        .select("*", { count: "exact", head: true });
       return count ?? 0;
     },
+  });
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  const { data: todayLogins } = useQuery({
+    queryKey: ["dash-today-logins", todayIso],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("lead_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "login_success")
+        .gte("created_at", `${todayIso}T00:00:00.000Z`);
+      return count ?? 0;
+    },
+    refetchInterval: 30_000,
+  });
+
+  const { data: activeToday } = useQuery({
+    queryKey: ["dash-active-today", todayIso],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lead_events")
+        .select("user_id")
+        .gte("created_at", `${todayIso}T00:00:00.000Z`)
+        .not("user_id", "is", null);
+      const unique = new Set((data ?? []).map(r => r.user_id));
+      return unique.size;
+    },
+    refetchInterval: 30_000,
   });
 
   const conversion = totalStudents && totalStudents > 0 ? ((paidUsers ?? 0) / totalStudents * 100).toFixed(1) : "0";
@@ -199,8 +230,26 @@ export default function AdminDashboardPage() {
               <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
               <MetricCard title="Avg Confidence" value={avgConfidence !== null ? `${avgConfidence}%` : "—"} change={avgConfidence !== null ? "Active students" : "No data"} changeType={avgConfidence && avgConfidence > 60 ? "positive" : "neutral"} icon={Activity} />
             </div>
-            <MetricCard title="Today Logins" value="—" change="Backend ready" changeType="neutral" icon={Zap} />
-            <MetricCard title="Active Today" value="—" change="Backend ready" changeType="neutral" icon={Activity} />
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard
+                title="Today Logins"
+                value={todayLogins ?? 0}
+                change={(todayLogins ?? 0) === 0 ? "Waiting for first visitor…" : "Live"}
+                changeType="neutral"
+                icon={Zap}
+              />
+            </div>
+            <div className="relative">
+              <LiveIndicator status={channelStatus} className="absolute top-3 right-3 z-10" />
+              <MetricCard
+                title="Active Today"
+                value={activeToday ?? 0}
+                change={(activeToday ?? 0) === 0 ? "Waiting for first visitor…" : "Live users"}
+                changeType="neutral"
+                icon={Activity}
+              />
+            </div>
           </div>
 
 
