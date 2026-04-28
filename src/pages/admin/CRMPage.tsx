@@ -248,7 +248,10 @@ export default function CRMPage() {
                     <TableHead className="font-mono-label">Lead</TableHead>
                     <TableHead className="font-mono-label">Contact</TableHead>
                     <TableHead className="font-mono-label">Type</TableHead>
+                    <TableHead className="font-mono-label">Grade / Board</TableHead>
+                    <TableHead className="font-mono-label">Source</TableHead>
                     <TableHead className="font-mono-label">Stage</TableHead>
+                    <TableHead className="font-mono-label">Assessment</TableHead>
                     <TableHead className="font-mono-label">Funnel</TableHead>
                     <TableHead className="font-mono-label">Follow-Up</TableHead>
                     <TableHead className="font-mono-label">Remarks</TableHead>
@@ -260,14 +263,38 @@ export default function CRMPage() {
                     <TableRow key={r.user_id}>
                       <TableCell className="text-xs font-medium">
                         <div>{r.name}</div>
-                        <div className="text-muted-foreground text-[10px]">{r.signup_date ? new Date(r.signup_date).toLocaleDateString() : "—"}</div>
+                        <div className="text-muted-foreground text-[10px]">
+                          {r.signup_date ? new Date(r.signup_date).toLocaleDateString() : "—"}
+                          {r.location ? ` · ${r.location}` : ""}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div>{r.email}</div>
                         <div className="text-muted-foreground text-[10px]">{r.phone}</div>
                       </TableCell>
                       <TableCell className="text-xs capitalize">{r.user_type}</TableCell>
+                      <TableCell className="text-xs">
+                        {r.grade || r.board ? (
+                          <>
+                            <div>{r.grade ?? "—"}</div>
+                            <div className="text-muted-foreground text-[10px]">
+                              {r.board ?? "—"}{r.age ? ` · age ${r.age}` : ""}
+                            </div>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-xs">{r.signup_source || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell><Badge variant={stageVariant(r.stage)} className="capitalize">{r.stage}</Badge></TableCell>
+                      <TableCell className="text-xs">
+                        {r.assessment_score !== null ? (
+                          <>
+                            <div className="font-semibold">{r.assessment_score}/100</div>
+                            <div className="text-muted-foreground text-[10px] max-w-[160px] truncate" title={r.assessment_summary ?? ""}>
+                              {r.assessment_summary ?? (r.assessment_date ? new Date(r.assessment_date).toLocaleDateString() : "")}
+                            </div>
+                          </>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex gap-1">
                           {r.pricing_visited && <Badge variant="outline" className="text-[9px] px-1">Pricing</Badge>}
