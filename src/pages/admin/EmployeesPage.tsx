@@ -164,7 +164,24 @@ export default function EmployeesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const total = employees?.length ?? 0;
+  const deleteEmployee = useMutation({
+    mutationFn: async (emp: EmployeeRow) => {
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: { mode: "delete", employee_id: emp.id },
+      });
+      if (error) throw new Error(error.message ?? "Delete failed");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-employees"] });
+      if (data?.warning) toast.warning(data.warning);
+      else toast.success("Employee deleted");
+      setDeleteTarget(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const active = employees?.filter(e => e.status === "active").length ?? 0;
 
   function openEdit(emp: EmployeeRow) {
