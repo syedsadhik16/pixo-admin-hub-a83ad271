@@ -393,36 +393,108 @@ export default function CRMPage() {
         </DialogContent>
       </Dialog>
 
-      <Sheet open={!!assessing} onOpenChange={o => !o && setAssessing(null)}>
+      <Sheet
+        open={!!assessing}
+        onOpenChange={o => {
+          if (!o) {
+            setAssessing(null);
+            setSelectedSnapshotId(null);
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
+              {selectedSnapshot && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 -ml-1"
+                  onClick={() => setSelectedSnapshotId(null)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
               <Sparkles className="h-4 w-4 text-primary" /> Assessment — {assessing?.name}
             </SheetTitle>
             <SheetDescription>
-              Latest snapshot:{" "}
-              {assessing?.assessment_date
-                ? new Date(assessing.assessment_date).toLocaleDateString(undefined, { dateStyle: "medium" })
-                : "No assessment yet"}
+              {selectedSnapshot
+                ? `Snapshot from ${new Date(selectedSnapshot.snapshot_date).toLocaleDateString(undefined, { dateStyle: "medium" })}`
+                : `${(history?.length ?? 0)} snapshot${(history?.length ?? 0) === 1 ? "" : "s"} on record`}
             </SheetDescription>
           </SheetHeader>
 
-          {assessing && (
+          {assessing && !selectedSnapshot && (
+            <div className="mt-6 space-y-5">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="font-mono-label text-muted-foreground">Latest Overall Score</p>
+                <p className="text-3xl font-bold mt-1">
+                  {assessing.assessment_score ?? "—"}<span className="text-lg text-muted-foreground">/100</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {assessing.assessment_date
+                    ? new Date(assessing.assessment_date).toLocaleDateString(undefined, { dateStyle: "medium" })
+                    : "No assessment yet"}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-mono-label text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <History className="h-3 w-3" /> Assessment History
+                </p>
+                {(history?.length ?? 0) === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center border rounded-lg">
+                    No snapshots yet
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {history!.map((s: any) => {
+                      const score = avgScore(s);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setSelectedSnapshotId(s.id)}
+                          className="w-full flex items-center justify-between rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <div>
+                            <p className="text-sm font-medium">
+                              {new Date(s.snapshot_date).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                            </p>
+                            {s.summary && (
+                              <p className="text-[11px] text-muted-foreground truncate max-w-[220px] mt-0.5">
+                                {s.summary}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold">{score ?? "—"}<span className="text-xs text-muted-foreground">/100</span></p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {selectedSnapshot && (
             <div className="mt-6 space-y-5">
               <div className="rounded-lg border bg-muted/30 p-4">
                 <p className="font-mono-label text-muted-foreground">Overall Score</p>
                 <p className="text-3xl font-bold mt-1">
-                  {assessing.assessment_score ?? "—"}<span className="text-lg text-muted-foreground">/100</span>
+                  {avgScore(selectedSnapshot) ?? "—"}<span className="text-lg text-muted-foreground">/100</span>
                 </p>
               </div>
 
               <div className="space-y-4">
                 {[
-                  { label: "Fluency", value: assessing.fluency_score },
-                  { label: "Phonics", value: assessing.phonics_score },
-                  { label: "Pronunciation", value: assessing.pronunciation_score },
-                  { label: "Vocabulary", value: assessing.vocabulary_score },
-                  { label: "Confidence", value: assessing.confidence_score },
+                  { label: "Fluency", value: selectedSnapshot.fluency_score },
+                  { label: "Phonics", value: selectedSnapshot.phonics_score },
+                  { label: "Pronunciation", value: selectedSnapshot.pronunciation_score },
+                  { label: "Vocabulary", value: selectedSnapshot.vocabulary_score },
+                  { label: "Confidence", value: selectedSnapshot.confidence_score },
                 ].map(s => (
                   <div key={s.label}>
                     <div className="flex items-center justify-between text-xs mb-1.5">
@@ -436,10 +508,10 @@ export default function CRMPage() {
                 ))}
               </div>
 
-              {assessing.assessment_summary && (
+              {selectedSnapshot.summary && (
                 <div className="rounded-lg border p-4">
                   <p className="font-mono-label text-muted-foreground mb-2">AI Summary</p>
-                  <p className="text-sm leading-relaxed">{assessing.assessment_summary}</p>
+                  <p className="text-sm leading-relaxed">{selectedSnapshot.summary}</p>
                 </div>
               )}
             </div>
