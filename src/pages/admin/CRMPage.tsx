@@ -168,6 +168,98 @@ export default function CRMPage() {
     [history, selectedSnapshotId],
   );
 
+  const SKILL_ACTIONS: Record<string, { title: string; tasks: string[] }> = {
+    fluency: {
+      title: "Boost Fluency",
+      tasks: [
+        "Assign daily 5-min read-aloud passages",
+        "Schedule weekly speaking practice with a coach",
+        "Share fluency drill playlist with parent",
+      ],
+    },
+    phonics: {
+      title: "Strengthen Phonics",
+      tasks: [
+        "Enroll in phonics foundations module",
+        "Send sound-blending worksheet pack",
+        "Book 1:1 phonics diagnostic call",
+      ],
+    },
+    pronunciation: {
+      title: "Improve Pronunciation",
+      tasks: [
+        "Recommend minimal-pair pronunciation drills",
+        "Schedule accent coaching trial session",
+        "Share daily mirror-practice routine",
+      ],
+    },
+    vocabulary: {
+      title: "Expand Vocabulary",
+      tasks: [
+        "Activate word-of-the-day notifications",
+        "Assign themed vocabulary quiz set",
+        "Recommend graded reader for the grade level",
+      ],
+    },
+    confidence: {
+      title: "Build Confidence",
+      tasks: [
+        "Pair with a peer for weekly speaking circle",
+        "Schedule low-pressure show-and-tell session",
+        "Share parent-side encouragement guide",
+      ],
+    },
+  };
+
+  function nextActionsFor(snap: any) {
+    if (!snap) return [] as { key: string; score: number; title: string; tasks: string[] }[];
+    const skills = [
+      { key: "fluency", score: snap.fluency_score },
+      { key: "phonics", score: snap.phonics_score },
+      { key: "pronunciation", score: snap.pronunciation_score },
+      { key: "vocabulary", score: snap.vocabulary_score },
+      { key: "confidence", score: snap.confidence_score },
+    ].filter(s => typeof s.score === "number") as { key: string; score: number }[];
+    if (!skills.length) return [];
+    skills.sort((a, b) => a.score - b.score);
+    return skills.slice(0, 2).map(s => ({
+      key: s.key,
+      score: Math.round(s.score),
+      title: SKILL_ACTIONS[s.key].title,
+      tasks: SKILL_ACTIONS[s.key].tasks,
+    }));
+  }
+
+  function NextActionsPanel({ snapshot }: { snapshot: any }) {
+    const actions = nextActionsFor(snapshot);
+    if (!actions.length) return null;
+    return (
+      <div className="rounded-lg border p-4">
+        <p className="font-mono-label text-muted-foreground mb-3 flex items-center gap-1.5">
+          <ListChecks className="h-3 w-3" /> Next Actions
+        </p>
+        <p className="text-[11px] text-muted-foreground mb-3">
+          Suggested follow-ups based on the lowest scoring skills.
+        </p>
+        <div className="space-y-3">
+          {actions.map(a => (
+            <div key={a.key} className="rounded-md border bg-muted/30 p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-sm font-semibold">{a.title}</p>
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  {a.key} · {a.score}/100
+                </Badge>
+              </div>
+              <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
+                {a.tasks.map(t => <li key={t}>{t}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const filtered = useMemo(() => {
     return (data ?? []).filter(r => {
       if (stageFilter !== "all" && r.stage !== stageFilter) return false;
