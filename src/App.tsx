@@ -25,6 +25,7 @@ import ExportsPage from "./pages/admin/ExportsPage";
 import SalesPage from "./pages/admin/SalesPage";
 import LeadsPage from "./pages/admin/LeadsPage";
 import B2BPage from "./pages/admin/B2BPage";
+import AttendancePage from "./pages/admin/AttendancePage";
 import JoinPage from "./pages/JoinPage";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
