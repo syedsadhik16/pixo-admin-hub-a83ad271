@@ -608,6 +608,8 @@ export default function CRMPage() {
                   <p className="text-sm leading-relaxed">{selectedSnapshot.summary}</p>
                 </div>
               )}
+
+              <NextActionsPanel snapshot={selectedSnapshot} />
             </div>
           )}
         </SheetContent>
