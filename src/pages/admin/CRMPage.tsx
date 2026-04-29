@@ -455,6 +455,22 @@ export default function CRMPage() {
                       )}
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    disabled={busyAction === notifyParentsKey || parentCount === 0}
+                    onClick={() => notifyParents(lead, a)}
+                    title={parentCount === 0 ? "No linked parents" : `Notify ${parentCount} linked parent${parentCount > 1 ? "s" : ""}`}
+                  >
+                    {busyAction === notifyParentsKey
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <Heart className="h-3 w-3" />}
+                    Notify parent{parentCount > 1 ? "s" : ""}
+                    {parentCount > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{parentCount}</Badge>
+                    )}
+                  </Button>
                 </div>
               </div>
             );
