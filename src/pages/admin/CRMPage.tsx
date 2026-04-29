@@ -245,7 +245,7 @@ export default function CRMPage() {
 
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
-  async function assignAction(lead: LeadRow, action: { key: string; title: string; tasks: string[] }) {
+  async function assignAction(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
     const opKey = `assign:${lead.user_id}:${action.key}`;
     setBusyAction(opKey);
     try {
