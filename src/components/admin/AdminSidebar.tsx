@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3, CreditCard, Users, BookOpen, Brain, Palette,
   Heart, Server, Shield, Search, LogOut, Zap,
-  Target, Filter, TrendingUp, Activity, Download, IndianRupee, Flame, Building2,
+  Target, Filter, TrendingUp, Activity, Download, IndianRupee, Flame, Building2, CalendarCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuthContext } from "@/contexts/AuthContext";
