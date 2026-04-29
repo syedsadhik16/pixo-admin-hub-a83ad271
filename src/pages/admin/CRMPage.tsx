@@ -394,6 +394,8 @@ export default function CRMPage() {
           {actions.map(a => {
             const assignKey = `assign:${lead.user_id}:${a.key}`;
             const notifyKey = `notify:${lead.user_id}:${a.key}`;
+            const notifyParentsKey = `notifyParents:${lead.user_id}:${a.key}`;
+            const parentCount = (leadParents ?? []).length;
             return (
               <div key={a.key} className="rounded-md border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-1.5">
