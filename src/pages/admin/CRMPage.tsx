@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks, UserPlus, BellRing, Loader2 } from "lucide-react";
+import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks, UserPlus, BellRing, Loader2, Heart } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
@@ -243,6 +243,34 @@ export default function CRMPage() {
     },
   });
 
+  const { data: leadParents } = useQuery({
+    queryKey: ["admin-crm-lead-parents", assessing?.user_id],
+    enabled: !!assessing?.user_id,
+    queryFn: async () => {
+      const { data: links } = await supabase
+        .from("parent_children")
+        .select("parent_user_id, relation_type")
+        .eq("student_user_id", assessing!.user_id)
+        .eq("status", "active");
+      const ids = (links ?? []).map(l => l.parent_user_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const profMap = new Map((profs ?? []).map(p => [p.id, p]));
+      return (links ?? []).map(l => {
+        const p = profMap.get(l.parent_user_id);
+        return {
+          id: l.parent_user_id,
+          name: p?.full_name ?? "Parent",
+          email: p?.email ?? null,
+          relation: l.relation_type ?? "parent",
+        };
+      });
+    },
+  });
+
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   async function assignAction(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
@@ -309,6 +337,47 @@ export default function CRMPage() {
     }
   }
 
+  async function notifyParents(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
+    const opKey = `notifyParents:${lead.user_id}:${action.key}`;
+    setBusyAction(opKey);
+    try {
+      const parents = leadParents ?? [];
+      if (!parents.length) {
+        toast.error("No linked parents found for this lead");
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      const recommendation = `${action.title}: ${action.tasks[0]}`;
+      const rows = parents.map(p => ({
+        actor_user_id: user?.id ?? null,
+        actor_role: "admin",
+        action_type: "notify_parent",
+        module_key: "crm",
+        target_id: p.id,
+        meta: {
+          lead_user_id: lead.user_id,
+          lead_name: lead.name,
+          parent_id: p.id,
+          parent_name: p.name,
+          parent_email: p.email,
+          relation: p.relation,
+          skill: action.key,
+          title: action.title,
+          score: action.score,
+          tasks: action.tasks,
+          message: `Recommendation for ${lead.name}: ${recommendation} (score ${action.score}/100)`,
+        } as never,
+      }));
+      const { error } = await supabase.from("audit_logs").insert(rows);
+      if (error) throw error;
+      toast.success(`Notified ${parents.length} parent${parents.length > 1 ? "s" : ""}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to notify parents");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   function NextActionsPanel({ snapshot }: { snapshot: any }) {
     const actions = nextActionsFor(snapshot);
     if (!actions.length || !assessing) return null;
@@ -325,6 +394,8 @@ export default function CRMPage() {
           {actions.map(a => {
             const assignKey = `assign:${lead.user_id}:${a.key}`;
             const notifyKey = `notify:${lead.user_id}:${a.key}`;
+            const notifyParentsKey = `notifyParents:${lead.user_id}:${a.key}`;
+            const parentCount = (leadParents ?? []).length;
             return (
               <div key={a.key} className="rounded-md border bg-muted/30 p-3">
                 <div className="flex items-center justify-between mb-1.5">
@@ -384,6 +455,22 @@ export default function CRMPage() {
                       )}
                     </PopoverContent>
                   </Popover>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    disabled={busyAction === notifyParentsKey || parentCount === 0}
+                    onClick={() => notifyParents(lead, a)}
+                    title={parentCount === 0 ? "No linked parents" : `Notify ${parentCount} linked parent${parentCount > 1 ? "s" : ""}`}
+                  >
+                    {busyAction === notifyParentsKey
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <Heart className="h-3 w-3" />}
+                    Notify parent{parentCount > 1 ? "s" : ""}
+                    {parentCount > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{parentCount}</Badge>
+                    )}
+                  </Button>
                 </div>
               </div>
             );
