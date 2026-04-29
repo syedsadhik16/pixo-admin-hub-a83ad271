@@ -141,6 +141,33 @@ export default function CRMPage() {
     },
   });
 
+  const { data: history } = useQuery({
+    queryKey: ["admin-crm-assessment-history", assessing?.user_id],
+    enabled: !!assessing?.user_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("performance_snapshots")
+        .select("id, snapshot_date, fluency_score, phonics_score, pronunciation_score, vocabulary_score, confidence_score, summary, created_at")
+        .eq("student_user_id", assessing!.user_id)
+        .order("snapshot_date", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const avgScore = (s: any) => {
+    const vals = [s?.fluency_score, s?.phonics_score, s?.pronunciation_score, s?.vocabulary_score, s?.confidence_score]
+      .filter((v): v is number => typeof v === "number");
+    if (!vals.length) return null;
+    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  };
+
+  const selectedSnapshot = useMemo(
+    () => (history ?? []).find((s: any) => s.id === selectedSnapshotId) ?? null,
+    [history, selectedSnapshotId],
+  );
+
   const filtered = useMemo(() => {
     return (data ?? []).filter(r => {
       if (stageFilter !== "all" && r.stage !== stageFilter) return false;
