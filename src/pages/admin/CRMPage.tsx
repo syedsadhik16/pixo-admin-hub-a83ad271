@@ -337,6 +337,47 @@ export default function CRMPage() {
     }
   }
 
+  async function notifyParents(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
+    const opKey = `notifyParents:${lead.user_id}:${action.key}`;
+    setBusyAction(opKey);
+    try {
+      const parents = leadParents ?? [];
+      if (!parents.length) {
+        toast.error("No linked parents found for this lead");
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      const recommendation = `${action.title}: ${action.tasks[0]}`;
+      const rows = parents.map(p => ({
+        actor_user_id: user?.id ?? null,
+        actor_role: "admin",
+        action_type: "notify_parent",
+        module_key: "crm",
+        target_id: p.id,
+        meta: {
+          lead_user_id: lead.user_id,
+          lead_name: lead.name,
+          parent_id: p.id,
+          parent_name: p.name,
+          parent_email: p.email,
+          relation: p.relation,
+          skill: action.key,
+          title: action.title,
+          score: action.score,
+          tasks: action.tasks,
+          message: `Recommendation for ${lead.name}: ${recommendation} (score ${action.score}/100)`,
+        } as never,
+      }));
+      const { error } = await supabase.from("audit_logs").insert(rows);
+      if (error) throw error;
+      toast.success(`Notified ${parents.length} parent${parents.length > 1 ? "s" : ""}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to notify parents");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   function NextActionsPanel({ snapshot }: { snapshot: any }) {
     const actions = nextActionsFor(snapshot);
     if (!actions.length || !assessing) return null;
