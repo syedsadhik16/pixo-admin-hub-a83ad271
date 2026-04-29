@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks } from "lucide-react";
+import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks, UserPlus, BellRing, Loader2 } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
@@ -230,9 +231,88 @@ export default function CRMPage() {
     }));
   }
 
+  const { data: staffList } = useQuery({
+    queryKey: ["admin-crm-staff-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("employee_profiles")
+        .select("id, name, email, role")
+        .eq("status", "active")
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+
+  async function assignAction(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
+    const opKey = `assign:${lead.user_id}:${action.key}`;
+    setBusyAction(opKey);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const recommendation = `${action.title}: ${action.tasks[0]}`;
+      // Record on the student's lesson activity feed (visible to staff/admin/parent/student via RLS)
+      const { error: actErr } = await supabase.from("lesson_activity").insert({
+        student_user_id: lead.user_id,
+        activity_date: new Date().toISOString().slice(0, 10),
+        activity_type: "recommendation",
+        title: action.title,
+        description: action.tasks.join(" • "),
+        metadata: { source: "crm_next_actions", skill: action.key, score: action.score, assigned_by: user?.id ?? null } as never,
+      });
+      if (actErr) throw actErr;
+      // Audit trail
+      await supabase.from("audit_logs").insert({
+        actor_user_id: user?.id ?? null,
+        actor_role: "admin",
+        action_type: "assign_recommendation",
+        module_key: "crm",
+        target_id: lead.user_id,
+        meta: { skill: action.key, title: action.title, recommendation } as never,
+      });
+      toast.success(`Assigned "${action.title}" to ${lead.name}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to assign");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function notifyStaff(lead: LeadRow, action: { key: string; title: string; score: number }, staff: { id: string; name: string; email: string | null }) {
+    const opKey = `notify:${lead.user_id}:${action.key}`;
+    setBusyAction(opKey);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("audit_logs").insert({
+        actor_user_id: user?.id ?? null,
+        actor_role: "admin",
+        action_type: "notify_staff",
+        module_key: "crm",
+        target_id: staff.id,
+        meta: {
+          lead_user_id: lead.user_id,
+          lead_name: lead.name,
+          staff_id: staff.id,
+          staff_name: staff.name,
+          staff_email: staff.email,
+          skill: action.key,
+          title: action.title,
+          score: action.score,
+          message: `Follow-up needed for ${lead.name}: ${action.title} (score ${action.score}/100)`,
+        } as never,
+      });
+      toast.success(`Notified ${staff.name}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to notify");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   function NextActionsPanel({ snapshot }: { snapshot: any }) {
     const actions = nextActionsFor(snapshot);
-    if (!actions.length) return null;
+    if (!actions.length || !assessing) return null;
+    const lead = assessing;
     return (
       <div className="rounded-lg border p-4">
         <p className="font-mono-label text-muted-foreground mb-3 flex items-center gap-1.5">
@@ -242,19 +322,72 @@ export default function CRMPage() {
           Suggested follow-ups based on the lowest scoring skills.
         </p>
         <div className="space-y-3">
-          {actions.map(a => (
-            <div key={a.key} className="rounded-md border bg-muted/30 p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-sm font-semibold">{a.title}</p>
-                <Badge variant="outline" className="text-[10px] capitalize">
-                  {a.key} · {a.score}/100
-                </Badge>
+          {actions.map(a => {
+            const assignKey = `assign:${lead.user_id}:${a.key}`;
+            const notifyKey = `notify:${lead.user_id}:${a.key}`;
+            return (
+              <div key={a.key} className="rounded-md border bg-muted/30 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-sm font-semibold">{a.title}</p>
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {a.key} · {a.score}/100
+                  </Badge>
+                </div>
+                <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground mb-3">
+                  {a.tasks.map(t => <li key={t}>{t}</li>)}
+                </ul>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    disabled={busyAction === assignKey}
+                    onClick={() => assignAction(lead, a)}
+                  >
+                    {busyAction === assignKey
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <UserPlus className="h-3 w-3" />}
+                    Assign module
+                  </Button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        disabled={busyAction === notifyKey}
+                      >
+                        {busyAction === notifyKey
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <BellRing className="h-3 w-3" />}
+                        Notify staff
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" align="end">
+                      <p className="font-mono-label text-muted-foreground px-2 py-1">Select staff</p>
+                      {(staffList ?? []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2">No active staff</p>
+                      ) : (
+                        <div className="max-h-60 overflow-y-auto">
+                          {staffList!.map(s => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              className="w-full text-left rounded px-2 py-1.5 text-xs hover:bg-muted"
+                              onClick={() => notifyStaff(lead, a, s)}
+                            >
+                              <div className="font-medium">{s.name}</div>
+                              <div className="text-[10px] text-muted-foreground">{s.role} · {s.email ?? "—"}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-              <ul className="text-xs space-y-1 list-disc pl-4 text-muted-foreground">
-                {a.tasks.map(t => <li key={t}>{t}</li>)}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
