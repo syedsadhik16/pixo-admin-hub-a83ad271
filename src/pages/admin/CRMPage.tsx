@@ -568,6 +568,8 @@ export default function CRMPage() {
                   </div>
                 )}
               </div>
+
+              <NextActionsPanel snapshot={(history && history[0]) ?? assessing} />
             </div>
           )}
 
