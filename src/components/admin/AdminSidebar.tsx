@@ -31,6 +31,7 @@ const operationsItems = [
   { title: "Sales & Commission", url: "/admin/sales", icon: IndianRupee },
   { title: "Progress", url: "/admin/progress", icon: TrendingUp },
   { title: "Activity", url: "/admin/activity", icon: Activity },
+  { title: "Attendance", url: "/admin/attendance", icon: CalendarCheck },
   { title: "Exports", url: "/admin/exports", icon: Download },
 ];
 
