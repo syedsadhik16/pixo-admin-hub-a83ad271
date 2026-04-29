@@ -243,6 +243,34 @@ export default function CRMPage() {
     },
   });
 
+  const { data: leadParents } = useQuery({
+    queryKey: ["admin-crm-lead-parents", assessing?.user_id],
+    enabled: !!assessing?.user_id,
+    queryFn: async () => {
+      const { data: links } = await supabase
+        .from("parent_children")
+        .select("parent_user_id, relation_type")
+        .eq("student_user_id", assessing!.user_id)
+        .eq("status", "active");
+      const ids = (links ?? []).map(l => l.parent_user_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", ids);
+      const profMap = new Map((profs ?? []).map(p => [p.id, p]));
+      return (links ?? []).map(l => {
+        const p = profMap.get(l.parent_user_id);
+        return {
+          id: l.parent_user_id,
+          name: p?.full_name ?? "Parent",
+          email: p?.email ?? null,
+          relation: l.relation_type ?? "parent",
+        };
+      });
+    },
+  });
+
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   async function assignAction(lead: LeadRow, action: { key: string; title: string; tasks: string[]; score: number }) {
