@@ -49,14 +49,14 @@ Deno.serve(async (req) => {
 
     const attendedSet = new Set(
       (attendance ?? [])
-        .filter((a) => a.status === "present" || a.status === "late")
+        .filter((a) => a.status === "present" || a.status === "late" || a.status === "excused")
         .map((a) => a.student_user_id),
     );
 
-    // Absent = explicitly marked absent OR scheduled-but-not-attended
+    // Absent = explicitly marked absent (and NOT also marked attended/excused) OR scheduled-but-not-attended
     const absentSet = new Set<string>();
     (attendance ?? [])
-      .filter((a) => a.status === "absent")
+      .filter((a) => a.status === "absent" && !attendedSet.has(a.student_user_id))
       .forEach((a) => absentSet.add(a.student_user_id));
     (scheduled ?? [])
       .filter((s) => s.class_status !== "cancelled" && !attendedSet.has(s.student_user_id))

@@ -25,6 +25,7 @@ import ExportsPage from "./pages/admin/ExportsPage";
 import SalesPage from "./pages/admin/SalesPage";
 import LeadsPage from "./pages/admin/LeadsPage";
 import B2BPage from "./pages/admin/B2BPage";
+import AttendancePage from "./pages/admin/AttendancePage";
 import JoinPage from "./pages/JoinPage";
 import { ProtectedAdminRoute } from "./components/admin/ProtectedAdminRoute";
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/sales" element={<ProtectedAdminRoute><SalesPage /></ProtectedAdminRoute>} />
             <Route path="/admin/leads" element={<ProtectedAdminRoute><LeadsPage /></ProtectedAdminRoute>} />
             <Route path="/admin/b2b" element={<ProtectedAdminRoute><B2BPage /></ProtectedAdminRoute>} />
+            <Route path="/admin/attendance" element={<ProtectedAdminRoute><AttendancePage /></ProtectedAdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
