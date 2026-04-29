@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks, UserPlus, BellRing, Loader2 } from "lucide-react";
+import { Search, Target, Download, Edit2, Sparkles, ChevronLeft, History, ListChecks, UserPlus, BellRing, Loader2, Heart } from "lucide-react";
 import { exportAndDownload } from "@/lib/admin/csv";
 import { toast } from "sonner";
 
