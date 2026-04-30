@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, CalendarCheck, Loader2, Users } from "lucide-react";
+import { Search, CalendarCheck, Loader2, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { exportAndDownload } from "@/lib/admin/csv";
 
 type AttendanceStatus = "present" | "late" | "excused" | "absent";
 
@@ -252,6 +253,46 @@ export default function AttendancePage() {
   const isLoading = studentsLoading || recordsLoading;
   const selectedCount = selected.size;
 
+  async function handleExportCsv() {
+    if (filtered.length === 0) {
+      toast.error("No students to export");
+      return;
+    }
+    const rows = filtered.map(s => {
+      const rec = recordByStudent.get(s.user_id);
+      const status = (rec?.status as AttendanceStatus | undefined) ?? null;
+      return {
+        name: s.name,
+        email: s.email,
+        level: s.level,
+        grade: s.grade,
+        scheduled: scheduledSet.has(s.user_id) ? "Yes" : "No",
+        status: status ? STATUS_LABELS[status] : "Not marked",
+        reason: rec?.reason ?? "",
+        session_title: rec?.session_title ?? "",
+        attendance_date: date,
+      };
+    });
+    await exportAndDownload(
+      `attendance-${date}.csv`,
+      rows,
+      [
+        { key: "name", label: "Student" },
+        { key: "email", label: "Email" },
+        { key: "level", label: "Level" },
+        { key: "grade", label: "Grade" },
+        { key: "scheduled", label: "Scheduled" },
+        { key: "status", label: "Status" },
+        { key: "reason", label: "Reason" },
+        { key: "session_title", label: "Session" },
+        { key: "attendance_date", label: "Date" },
+      ],
+      "attendance_roster",
+      { date, search: search || null, row_count: rows.length },
+    );
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? "" : "s"}`);
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-4">
@@ -285,6 +326,16 @@ export default function AttendancePage() {
                     className="h-8 pl-8 text-xs w-56"
                   />
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={handleExportCsv}
+                  disabled={isLoading || filtered.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
+                </Button>
               </div>
             </div>
           </CardHeader>
