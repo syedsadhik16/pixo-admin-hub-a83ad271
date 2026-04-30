@@ -326,6 +326,16 @@ export default function AttendancePage() {
                     className="h-8 pl-8 text-xs w-56"
                   />
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={handleExportCsv}
+                  disabled={isLoading || filtered.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
+                </Button>
               </div>
             </div>
           </CardHeader>
