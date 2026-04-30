@@ -76,11 +76,35 @@ export default function AttendancePage() {
   const { data: scheduled } = useQuery({
     queryKey: ["attendance-scheduled", date],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: schedRows } = await supabase
         .from("child_schedule")
-        .select("student_user_id, class_status")
+        .select("id, student_user_id, class_status, curriculum_day_id, scheduled_date")
         .eq("scheduled_date", date);
-      return data ?? [];
+      const rows = schedRows ?? [];
+      const dayIds = Array.from(new Set(rows.map(r => r.curriculum_day_id).filter(Boolean) as string[]));
+
+      let dayMap = new Map<string, { title: string | null; day_number: number | null; theme: string | null }>();
+      let durationMap = new Map<string, number>();
+
+      if (dayIds.length > 0) {
+        const [{ data: days }, { data: parts }] = await Promise.all([
+          supabase.from("curriculum_days").select("id, title, day_number, theme").in("id", dayIds),
+          supabase.from("curriculum_day_parts").select("day_id, duration_minutes").in("day_id", dayIds),
+        ]);
+        dayMap = new Map((days ?? []).map(d => [d.id, { title: d.title, day_number: d.day_number, theme: d.theme }]));
+        (parts ?? []).forEach(p => {
+          if (!p.day_id) return;
+          durationMap.set(p.day_id, (durationMap.get(p.day_id) ?? 0) + (p.duration_minutes ?? 0));
+        });
+      }
+
+      return rows.map(r => ({
+        ...r,
+        day_title: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.title ?? null : null,
+        day_number: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.day_number ?? null : null,
+        day_theme: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.theme ?? null : null,
+        total_minutes: r.curriculum_day_id ? durationMap.get(r.curriculum_day_id) ?? null : null,
+      }));
     },
   });
 
