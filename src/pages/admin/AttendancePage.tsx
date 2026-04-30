@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, CalendarCheck, Loader2 } from "lucide-react";
+import { Search, CalendarCheck, Loader2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -37,6 +38,9 @@ export default function AttendancePage() {
   const [search, setSearch] = useState("");
   const [reasonDraft, setReasonDraft] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   const { data: students, isLoading: studentsLoading } = useQuery({
     queryKey: ["attendance-students"],
@@ -80,7 +84,7 @@ export default function AttendancePage() {
   });
 
   const recordByStudent = useMemo(() => {
-    const m = new Map<string, typeof records[number]>();
+    const m = new Map<string, NonNullable<typeof records>[number]>();
     (records ?? []).forEach(r => m.set(r.student_user_id, r));
     return m;
   }, [records]);
@@ -97,6 +101,38 @@ export default function AttendancePage() {
       return s.name.toLowerCase().includes(t) || s.email.toLowerCase().includes(t);
     });
   }, [students, search]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selected.has(s.user_id));
+  const someFilteredSelected = filtered.some(s => selected.has(s.user_id));
+
+  function toggleOne(id: string, checked: boolean) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+  function toggleAllFiltered(checked: boolean) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      filtered.forEach(s => { if (checked) next.add(s.user_id); else next.delete(s.user_id); });
+      return next;
+    });
+  }
+  function clearSelection() { setSelected(new Set()); }
+
+  async function suppressAbsenceAlerts(studentIds: string[]) {
+    if (studentIds.length === 0) return;
+    const startIso = `${date}T00:00:00Z`;
+    const endIso = `${date}T23:59:59Z`;
+    await supabase
+      .from("parent_notifications")
+      .update({ read: true })
+      .in("student_user_id", studentIds)
+      .eq("notification_type", "absence_alert")
+      .gte("created_at", startIso)
+      .lte("created_at", endIso);
+  }
 
   async function setStatus(studentId: string, status: AttendanceStatus) {
     setSavingId(studentId);
@@ -128,18 +164,8 @@ export default function AttendancePage() {
       return;
     }
 
-    // Suppress duplicate absence notifications: if any "absence_alert" already
-    // exists for this student today, mark it read so the parent isn't pinged.
     if (status === "present" || status === "late" || status === "excused") {
-      const startIso = `${date}T00:00:00Z`;
-      const endIso = `${date}T23:59:59Z`;
-      await supabase
-        .from("parent_notifications")
-        .update({ read: true })
-        .eq("student_user_id", studentId)
-        .eq("notification_type", "absence_alert")
-        .gte("created_at", startIso)
-        .lte("created_at", endIso);
+      await suppressAbsenceAlerts([studentId]);
     }
 
     if (user?.id) {
@@ -157,7 +183,74 @@ export default function AttendancePage() {
     qc.invalidateQueries({ queryKey: ["attendance-records", date] });
   }
 
+  async function bulkSetStatus(status: AttendanceStatus) {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBulkRunning(true);
+
+    const reason = (status === "excused" || status === "absent") ? (bulkReason.trim() || null) : null;
+    const existingIds = ids.filter(id => recordByStudent.has(id));
+    const newIds = ids.filter(id => !recordByStudent.has(id));
+
+    let failures = 0;
+
+    // Updates (must be per-row to target each existing record id)
+    for (const id of existingIds) {
+      const existing = recordByStudent.get(id)!;
+      const { error } = await supabase
+        .from("attendance_records")
+        .update({
+          status,
+          reason: reason ?? (status === "excused" || status === "absent" ? existing.reason ?? null : null),
+        })
+        .eq("id", existing.id);
+      if (error) failures++;
+    }
+
+    // Inserts in one batch
+    if (newIds.length > 0) {
+      const rows = newIds.map(id => ({
+        student_user_id: id,
+        attendance_date: date,
+        status,
+        reason,
+        session_title: null,
+      }));
+      const { error } = await supabase.from("attendance_records").insert(rows);
+      if (error) failures += newIds.length;
+    }
+
+    if (status === "present" || status === "late" || status === "excused") {
+      await suppressAbsenceAlerts(ids);
+    }
+
+    if (user?.id) {
+      const logs = ids.map(id => ({
+        actor_user_id: user.id,
+        action_type: "attendance_override",
+        module_key: "attendance",
+        target_id: id,
+        meta: { date, status, reason, source: "admin_attendance_page", bulk: true, batch_size: ids.length },
+      }));
+      await supabase.from("audit_logs").insert(logs);
+    }
+
+    setBulkRunning(false);
+    qc.invalidateQueries({ queryKey: ["attendance-records", date] });
+
+    if (failures === 0) {
+      toast.success(`Marked ${ids.length} student${ids.length === 1 ? "" : "s"} as ${STATUS_LABELS[status]}`);
+      clearSelection();
+      setBulkReason("");
+    } else if (failures < ids.length) {
+      toast.warning(`Updated ${ids.length - failures} of ${ids.length}. ${failures} failed.`);
+    } else {
+      toast.error(`Bulk update failed for all ${ids.length} students.`);
+    }
+  }
+
   const isLoading = studentsLoading || recordsLoading;
+  const selectedCount = selected.size;
 
   return (
     <AdminLayout>
@@ -195,7 +288,64 @@ export default function AttendancePage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {selectedCount > 0 && (
+              <div className="flex items-center justify-between flex-wrap gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="font-medium">{selectedCount} selected</span>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Input
+                    placeholder="Bulk reason (excused/absent)"
+                    value={bulkReason}
+                    onChange={e => setBulkReason(e.target.value)}
+                    className="h-7 text-xs w-56"
+                  />
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 text-xs"
+                    disabled={bulkRunning}
+                    onClick={() => bulkSetStatus("present")}
+                  >
+                    Mark Present
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 text-xs"
+                    disabled={bulkRunning}
+                    onClick={() => bulkSetStatus("late")}
+                  >
+                    Mark Late
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={bulkRunning}
+                    onClick={() => bulkSetStatus("excused")}
+                  >
+                    Mark Excused
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 text-xs"
+                    disabled={bulkRunning}
+                    onClick={() => bulkSetStatus("absent")}
+                  >
+                    Mark Absent
+                  </Button>
+                  {bulkRunning && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                </div>
+              </div>
+            )}
+
             {isLoading ? (
               <LoadingSpinner />
             ) : filtered.length === 0 ? (
@@ -204,6 +354,13 @@ export default function AttendancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8">
+                      <Checkbox
+                        checked={allFilteredSelected ? true : someFilteredSelected ? "indeterminate" : false}
+                        onCheckedChange={(v) => toggleAllFiltered(Boolean(v))}
+                        aria-label="Select all visible"
+                      />
+                    </TableHead>
                     <TableHead className="font-mono-label">Student</TableHead>
                     <TableHead className="font-mono-label">Level</TableHead>
                     <TableHead className="font-mono-label">Scheduled</TableHead>
@@ -217,8 +374,16 @@ export default function AttendancePage() {
                     const rec = recordByStudent.get(s.user_id);
                     const current = (rec?.status as AttendanceStatus | undefined) ?? null;
                     const isScheduled = scheduledSet.has(s.user_id);
+                    const isSelected = selected.has(s.user_id);
                     return (
-                      <TableRow key={s.user_id}>
+                      <TableRow key={s.user_id} data-state={isSelected ? "selected" : undefined}>
+                        <TableCell>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(v) => toggleOne(s.user_id, Boolean(v))}
+                            aria-label={`Select ${s.name}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="text-xs font-medium">{s.name}</div>
                           <div className="text-[10px] text-muted-foreground">{s.email}</div>
