@@ -66,7 +66,7 @@ export default function AttendancePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, student_user_id, status, reason, session_title, attendance_date")
+        .select("id, student_user_id, status, reason, session_title, attendance_date, minutes_attended")
         .eq("attendance_date", date);
       if (error) throw error;
       return data ?? [];
@@ -76,11 +76,35 @@ export default function AttendancePage() {
   const { data: scheduled } = useQuery({
     queryKey: ["attendance-scheduled", date],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: schedRows } = await supabase
         .from("child_schedule")
-        .select("student_user_id, class_status")
+        .select("id, student_user_id, class_status, curriculum_day_id, scheduled_date")
         .eq("scheduled_date", date);
-      return data ?? [];
+      const rows = schedRows ?? [];
+      const dayIds = Array.from(new Set(rows.map(r => r.curriculum_day_id).filter(Boolean) as string[]));
+
+      let dayMap = new Map<string, { title: string | null; day_number: number | null; theme: string | null }>();
+      let durationMap = new Map<string, number>();
+
+      if (dayIds.length > 0) {
+        const [{ data: days }, { data: parts }] = await Promise.all([
+          supabase.from("curriculum_days").select("id, title, day_number, theme").in("id", dayIds),
+          supabase.from("curriculum_day_parts").select("day_id, duration_minutes").in("day_id", dayIds),
+        ]);
+        dayMap = new Map((days ?? []).map(d => [d.id, { title: d.title, day_number: d.day_number, theme: d.theme }]));
+        (parts ?? []).forEach(p => {
+          if (!p.day_id) return;
+          durationMap.set(p.day_id, (durationMap.get(p.day_id) ?? 0) + (p.duration_minutes ?? 0));
+        });
+      }
+
+      return rows.map(r => ({
+        ...r,
+        day_title: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.title ?? null : null,
+        day_number: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.day_number ?? null : null,
+        day_theme: r.curriculum_day_id ? dayMap.get(r.curriculum_day_id)?.theme ?? null : null,
+        total_minutes: r.curriculum_day_id ? durationMap.get(r.curriculum_day_id) ?? null : null,
+      }));
     },
   });
 
@@ -94,6 +118,12 @@ export default function AttendancePage() {
     () => new Set((scheduled ?? []).filter(s => s.class_status !== "cancelled").map(s => s.student_user_id)),
     [scheduled],
   );
+
+  const scheduledByStudent = useMemo(() => {
+    const m = new Map<string, NonNullable<typeof scheduled>[number]>();
+    (scheduled ?? []).forEach(s => m.set(s.student_user_id, s));
+    return m;
+  }, [scheduled]);
 
   const filtered = useMemo(() => {
     return (students ?? []).filter(s => {
@@ -260,6 +290,7 @@ export default function AttendancePage() {
     }
     const rows = filtered.map(s => {
       const rec = recordByStudent.get(s.user_id);
+      const sched = scheduledByStudent.get(s.user_id);
       const status = (rec?.status as AttendanceStatus | undefined) ?? null;
       return {
         name: s.name,
@@ -267,9 +298,18 @@ export default function AttendancePage() {
         level: s.level,
         grade: s.grade,
         scheduled: scheduledSet.has(s.user_id) ? "Yes" : "No",
+        class_status: sched?.class_status ?? "",
+        schedule_id: sched?.id ?? "",
+        curriculum_day_id: sched?.curriculum_day_id ?? "",
+        day_number: sched?.day_number ?? "",
+        day_title: sched?.day_title ?? "",
+        day_theme: sched?.day_theme ?? "",
+        scheduled_minutes: sched?.total_minutes ?? "",
         status: status ? STATUS_LABELS[status] : "Not marked",
+        minutes_attended: (rec as { minutes_attended?: number | null })?.minutes_attended ?? "",
         reason: rec?.reason ?? "",
         session_title: rec?.session_title ?? "",
+        attendance_record_id: rec?.id ?? "",
         attendance_date: date,
       };
     });
@@ -282,9 +322,18 @@ export default function AttendancePage() {
         { key: "level", label: "Level" },
         { key: "grade", label: "Grade" },
         { key: "scheduled", label: "Scheduled" },
+        { key: "class_status", label: "Class Status" },
+        { key: "schedule_id", label: "Schedule ID" },
+        { key: "curriculum_day_id", label: "Curriculum Day ID" },
+        { key: "day_number", label: "Day #" },
+        { key: "day_title", label: "Day Title" },
+        { key: "day_theme", label: "Theme" },
+        { key: "scheduled_minutes", label: "Scheduled Minutes" },
         { key: "status", label: "Status" },
+        { key: "minutes_attended", label: "Minutes Attended" },
         { key: "reason", label: "Reason" },
         { key: "session_title", label: "Session" },
+        { key: "attendance_record_id", label: "Attendance Record ID" },
         { key: "attendance_date", label: "Date" },
       ],
       "attendance_roster",
