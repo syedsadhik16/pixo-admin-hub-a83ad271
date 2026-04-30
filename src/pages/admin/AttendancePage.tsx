@@ -290,6 +290,7 @@ export default function AttendancePage() {
     }
     const rows = filtered.map(s => {
       const rec = recordByStudent.get(s.user_id);
+      const sched = scheduledByStudent.get(s.user_id);
       const status = (rec?.status as AttendanceStatus | undefined) ?? null;
       return {
         name: s.name,
@@ -297,9 +298,18 @@ export default function AttendancePage() {
         level: s.level,
         grade: s.grade,
         scheduled: scheduledSet.has(s.user_id) ? "Yes" : "No",
+        class_status: sched?.class_status ?? "",
+        schedule_id: sched?.id ?? "",
+        curriculum_day_id: sched?.curriculum_day_id ?? "",
+        day_number: sched?.day_number ?? "",
+        day_title: sched?.day_title ?? "",
+        day_theme: sched?.day_theme ?? "",
+        scheduled_minutes: sched?.total_minutes ?? "",
         status: status ? STATUS_LABELS[status] : "Not marked",
+        minutes_attended: (rec as { minutes_attended?: number | null })?.minutes_attended ?? "",
         reason: rec?.reason ?? "",
         session_title: rec?.session_title ?? "",
+        attendance_record_id: rec?.id ?? "",
         attendance_date: date,
       };
     });
@@ -312,9 +322,18 @@ export default function AttendancePage() {
         { key: "level", label: "Level" },
         { key: "grade", label: "Grade" },
         { key: "scheduled", label: "Scheduled" },
+        { key: "class_status", label: "Class Status" },
+        { key: "schedule_id", label: "Schedule ID" },
+        { key: "curriculum_day_id", label: "Curriculum Day ID" },
+        { key: "day_number", label: "Day #" },
+        { key: "day_title", label: "Day Title" },
+        { key: "day_theme", label: "Theme" },
+        { key: "scheduled_minutes", label: "Scheduled Minutes" },
         { key: "status", label: "Status" },
+        { key: "minutes_attended", label: "Minutes Attended" },
         { key: "reason", label: "Reason" },
         { key: "session_title", label: "Session" },
+        { key: "attendance_record_id", label: "Attendance Record ID" },
         { key: "attendance_date", label: "Date" },
       ],
       "attendance_roster",
