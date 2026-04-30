@@ -66,7 +66,7 @@ export default function AttendancePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, student_user_id, status, reason, session_title, attendance_date")
+        .select("id, student_user_id, status, reason, session_title, attendance_date, minutes_attended")
         .eq("attendance_date", date);
       if (error) throw error;
       return data ?? [];
