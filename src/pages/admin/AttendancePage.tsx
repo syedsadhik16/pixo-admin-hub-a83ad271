@@ -11,9 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, CalendarCheck, Loader2, Users } from "lucide-react";
+import { Search, CalendarCheck, Loader2, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { exportAndDownload } from "@/lib/admin/csv";
 
 type AttendanceStatus = "present" | "late" | "excused" | "absent";
 
