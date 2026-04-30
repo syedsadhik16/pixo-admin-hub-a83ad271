@@ -119,6 +119,12 @@ export default function AttendancePage() {
     [scheduled],
   );
 
+  const scheduledByStudent = useMemo(() => {
+    const m = new Map<string, NonNullable<typeof scheduled>[number]>();
+    (scheduled ?? []).forEach(s => m.set(s.student_user_id, s));
+    return m;
+  }, [scheduled]);
+
   const filtered = useMemo(() => {
     return (students ?? []).filter(s => {
       if (!search) return true;
