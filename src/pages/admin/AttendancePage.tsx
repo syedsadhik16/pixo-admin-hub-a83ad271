@@ -376,6 +376,23 @@ export default function AttendancePage() {
           </p>
         </div>
 
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <MetricCard title="Total Students" value={summaryMetrics.total} icon={Users} />
+          <MetricCard title="Scheduled" value={summaryMetrics.scheduledCount} icon={CalendarCheck} />
+          <MetricCard title="Present" value={summaryMetrics.present} icon={CheckCircle} change={`${summaryMetrics.total ? Math.round((summaryMetrics.present / summaryMetrics.total) * 100) : 0}%`} changeType="positive" />
+          <MetricCard title="Late" value={summaryMetrics.late} icon={Clock} />
+          <MetricCard title="Excused" value={summaryMetrics.excused} icon={AlertCircle} />
+          <MetricCard title="Absent" value={summaryMetrics.absent} icon={XCircle} changeType="negative" />
+          <MetricCard title="Not Marked" value={summaryMetrics.notMarked} icon={MinusCircle} />
+          <MetricCard
+            title="Minutes"
+            value={`${summaryMetrics.minutesAttended} / ${summaryMetrics.minutesScheduled}`}
+            icon={Timer}
+            change={summaryMetrics.minutesScheduled ? `${Math.round((summaryMetrics.minutesAttended / summaryMetrics.minutesScheduled) * 100)}% attended` : "—"}
+            changeType={summaryMetrics.minutesAttended >= summaryMetrics.minutesScheduled ? "positive" : "neutral"}
+          />
+        </div>
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-2">
