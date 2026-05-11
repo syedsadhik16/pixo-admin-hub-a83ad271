@@ -284,6 +284,29 @@ export default function AttendancePage() {
   const isLoading = studentsLoading || recordsLoading;
   const selectedCount = selected.size;
 
+  const summaryMetrics = useMemo(() => {
+    const total = filtered.length;
+    const scheduledCount = filtered.filter(s => scheduledSet.has(s.user_id)).length;
+    let present = 0, late = 0, excused = 0, absent = 0, notMarked = 0;
+    let minutesScheduled = 0, minutesAttended = 0;
+    filtered.forEach(s => {
+      const rec = recordByStudent.get(s.user_id);
+      const status = (rec?.status as AttendanceStatus | undefined) ?? null;
+      if (status === "present") present++;
+      else if (status === "late") late++;
+      else if (status === "excused") excused++;
+      else if (status === "absent") absent++;
+      else notMarked++;
+
+      const sched = scheduledByStudent.get(s.user_id);
+      if (sched?.total_minutes) minutesScheduled += sched.total_minutes;
+      if ((rec as { minutes_attended?: number | null })?.minutes_attended) {
+        minutesAttended += (rec as { minutes_attended?: number | null }).minutes_attended!;
+      }
+    });
+    return { total, scheduledCount, present, late, excused, absent, notMarked, minutesScheduled, minutesAttended };
+  }, [filtered, recordByStudent, scheduledSet, scheduledByStudent]);
+
   async function handleExportCsv() {
     if (filtered.length === 0) {
       toast.error("No students to export");
