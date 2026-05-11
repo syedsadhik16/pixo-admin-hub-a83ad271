@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { Search, CalendarCheck, Loader2, Users, Download } from "lucide-react";
+import { Search, CalendarCheck, Loader2, Users, Download, CheckCircle, Clock, AlertCircle, XCircle, MinusCircle, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { exportAndDownload } from "@/lib/admin/csv";
@@ -283,6 +284,29 @@ export default function AttendancePage() {
   const isLoading = studentsLoading || recordsLoading;
   const selectedCount = selected.size;
 
+  const summaryMetrics = useMemo(() => {
+    const total = filtered.length;
+    const scheduledCount = filtered.filter(s => scheduledSet.has(s.user_id)).length;
+    let present = 0, late = 0, excused = 0, absent = 0, notMarked = 0;
+    let minutesScheduled = 0, minutesAttended = 0;
+    filtered.forEach(s => {
+      const rec = recordByStudent.get(s.user_id);
+      const status = (rec?.status as AttendanceStatus | undefined) ?? null;
+      if (status === "present") present++;
+      else if (status === "late") late++;
+      else if (status === "excused") excused++;
+      else if (status === "absent") absent++;
+      else notMarked++;
+
+      const sched = scheduledByStudent.get(s.user_id);
+      if (sched?.total_minutes) minutesScheduled += sched.total_minutes;
+      if ((rec as { minutes_attended?: number | null })?.minutes_attended) {
+        minutesAttended += (rec as { minutes_attended?: number | null }).minutes_attended!;
+      }
+    });
+    return { total, scheduledCount, present, late, excused, absent, notMarked, minutesScheduled, minutesAttended };
+  }, [filtered, recordByStudent, scheduledSet, scheduledByStudent]);
+
   async function handleExportCsv() {
     if (filtered.length === 0) {
       toast.error("No students to export");
@@ -350,6 +374,23 @@ export default function AttendancePage() {
           <p className="text-sm text-muted-foreground">
             Mark students as Present, Late, or Excused after the fact. Excused or attended status prevents absence notifications to parents for that day.
           </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <MetricCard title="Total Students" value={summaryMetrics.total} icon={Users} />
+          <MetricCard title="Scheduled" value={summaryMetrics.scheduledCount} icon={CalendarCheck} />
+          <MetricCard title="Present" value={summaryMetrics.present} icon={CheckCircle} change={`${summaryMetrics.total ? Math.round((summaryMetrics.present / summaryMetrics.total) * 100) : 0}%`} changeType="positive" />
+          <MetricCard title="Late" value={summaryMetrics.late} icon={Clock} />
+          <MetricCard title="Excused" value={summaryMetrics.excused} icon={AlertCircle} />
+          <MetricCard title="Absent" value={summaryMetrics.absent} icon={XCircle} changeType="negative" />
+          <MetricCard title="Not Marked" value={summaryMetrics.notMarked} icon={MinusCircle} />
+          <MetricCard
+            title="Minutes"
+            value={`${summaryMetrics.minutesAttended} / ${summaryMetrics.minutesScheduled}`}
+            icon={Timer}
+            change={summaryMetrics.minutesScheduled ? `${Math.round((summaryMetrics.minutesAttended / summaryMetrics.minutesScheduled) * 100)}% attended` : "—"}
+            changeType={summaryMetrics.minutesAttended >= summaryMetrics.minutesScheduled ? "positive" : "neutral"}
+          />
         </div>
 
         <Card>
