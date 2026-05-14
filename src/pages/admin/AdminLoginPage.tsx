@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { toast } from "sonner";
 import { trackLeadEvent } from "@/lib/leadTracking";
 import { CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { PageHead } from "@/components/PageHead";
 import {
   fetchAdminDiagnostics,
   getAdminAccessMessage,
@@ -295,7 +296,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-pixo-surface py-8">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-pixo-surface py-8">
+      <PageHead
+        title="Login — PIXO Brain"
+        description="Sign in to PIXO Brain, the admin hub for PIXO Learn."
+        canonical="/admin/login"
+      />
+      <h1 className="sr-only">Sign in to PIXO Brain</h1>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 h-12 w-12 rounded-xl pixo-gradient flex items-center justify-center">
@@ -411,9 +418,9 @@ export default function AdminLoginPage() {
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="space-y-2">
-                <Label>One-time code</Label>
+                <Label htmlFor="admin-otp-code">One-time code</Label>
                 <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTP id="admin-otp-code" maxLength={6} value={otp} onChange={setOtp} aria-label="One-time code">
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
                       <InputOTPSlot index={1} />
