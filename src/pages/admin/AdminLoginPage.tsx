@@ -530,7 +530,7 @@ export default function AdminLoginPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </main>
   );
 }
 
