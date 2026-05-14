@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/admin/LoadingSpinner";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Briefcase, TrendingUp } from "lucide-react";
+import { PageHead } from "@/components/PageHead";
 
 interface InviteMeta {
   id: string;
@@ -44,6 +45,15 @@ export default function JoinPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [invite, setInvite] = useState<InviteMeta | null>(null);
+
+  const fullNameId = useId();
+  const empCodeId = useId();
+  const emailId = useId();
+  const phoneId = useId();
+  const roleId = useId();
+  const designationId = useId();
+  const passwordId = useId();
+  const confirmId = useId();
 
   const [form, setForm] = useState({
     full_name: "",
@@ -123,17 +133,29 @@ export default function JoinPage() {
     }
   }
 
+  const head = (
+    <PageHead
+      title="Onboarding — PIXO Brain"
+      description="Complete your PIXO Learn employee onboarding using your invite link."
+      canonical="/join"
+    />
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        {head}
+        <h1 className="sr-only">Employee onboarding</h1>
         <LoadingSpinner />
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <main className="min-h-screen flex items-center justify-center bg-background p-4">
+        {head}
+        <h1 className="sr-only">Employee onboarding</h1>
         <Card className="max-w-md w-full">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -148,17 +170,19 @@ export default function JoinPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <main className="min-h-screen flex items-center justify-center bg-background p-4">
+        {head}
+        <h1 className="sr-only">Employee onboarding</h1>
         <Card className="max-w-md w-full">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <CheckCircle2 className="h-5 w-5 text-pixo-green" />
               <CardTitle>Welcome aboard!</CardTitle>
             </div>
           </CardHeader>
@@ -168,7 +192,7 @@ export default function JoinPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </main>
     );
   }
 
@@ -176,7 +200,9 @@ export default function JoinPage() {
   const Icon = invite?.category === "commission" ? TrendingUp : Briefcase;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <main className="min-h-screen flex items-center justify-center bg-background p-4">
+      {head}
+      <h1 className="sr-only">Join PIXO Learn — employee onboarding</h1>
       <Card className="max-w-xl w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -195,29 +221,29 @@ export default function JoinPage() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Full Name *</Label>
-              <Input value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
+              <Label htmlFor={fullNameId} className="text-xs">Full Name *</Label>
+              <Input id={fullNameId} value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Employee Code *</Label>
-              <Input value={form.employee_code} onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))} placeholder="e.g. EMP010" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Email *</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} disabled={!!invite?.invited_email} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Phone</Label>
-              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+              <Label htmlFor={empCodeId} className="text-xs">Employee Code *</Label>
+              <Input id={empCodeId} value={form.employee_code} onChange={(e) => setForm((f) => ({ ...f, employee_code: e.target.value }))} placeholder="e.g. EMP010" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Role *</Label>
+              <Label htmlFor={emailId} className="text-xs">Email *</Label>
+              <Input id={emailId} type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} disabled={!!invite?.invited_email} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={phoneId} className="text-xs">Phone</Label>
+              <Input id={phoneId} value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor={roleId} className="text-xs">Role *</Label>
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))} disabled={!!invite?.preset_role}>
-                <SelectTrigger className="text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
+                <SelectTrigger id={roleId} className="text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
                 <SelectContent>
                   {roleOptions.map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
@@ -226,18 +252,18 @@ export default function JoinPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Designation</Label>
-              <Input value={form.designation} onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))} placeholder="e.g. Senior Developer" />
+              <Label htmlFor={designationId} className="text-xs">Designation</Label>
+              <Input id={designationId} value={form.designation} onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))} placeholder="e.g. Senior Developer" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Password *</Label>
-              <Input type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
+              <Label htmlFor={passwordId} className="text-xs">Password *</Label>
+              <Input id={passwordId} type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Confirm Password *</Label>
-              <Input type="password" value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} />
+              <Label htmlFor={confirmId} className="text-xs">Confirm Password *</Label>
+              <Input id={confirmId} type="password" value={form.confirm} onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))} />
             </div>
           </div>
           {invite?.category === "commission" && (
@@ -250,6 +276,6 @@ export default function JoinPage() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
