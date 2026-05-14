@@ -1,0 +1,12 @@
+# PIXO Brain
+
+> Admin Hub for PIXO Learn — backend control panel for managing students, curriculum, payments, employees, and AI behavior. Authenticated staff only.
+
+## Pages
+
+- [Home](/): Redirects to the admin sign-in page.
+- [Admin Login](/admin/login): Sign in for PIXO Learn staff and founders.
+
+## Optional
+
+The remainder of the application (`/admin/*`) is gated behind authentication and intentionally excluded from indexing.

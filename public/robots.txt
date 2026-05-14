@@ -1,8 +1,14 @@
 User-agent: Googlebot
-Allow: /
+Allow: /$
+Allow: /admin/login
+Disallow: /admin/
+Disallow: /join/
 
 User-agent: Bingbot
-Allow: /
+Allow: /$
+Allow: /admin/login
+Disallow: /admin/
+Disallow: /join/
 
 User-agent: Twitterbot
 Allow: /
@@ -11,4 +17,9 @@ User-agent: facebookexternalhit
 Allow: /
 
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /admin/login
+Disallow: /admin/
+Disallow: /join/
+
+Sitemap: https://pixo-nexus-admin.lovable.app/sitemap.xml
