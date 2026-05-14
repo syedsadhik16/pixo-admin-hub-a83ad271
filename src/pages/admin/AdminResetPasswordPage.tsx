@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { PageHead } from "@/components/PageHead";
 
 export default function AdminResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -44,7 +45,13 @@ export default function AdminResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pixo-surface py-8">
+    <main className="min-h-screen flex items-center justify-center bg-pixo-surface py-8">
+      <PageHead
+        title="Reset password — PIXO Brain"
+        description="Set a new password for your PIXO Brain admin account."
+        canonical="/admin/reset-password"
+      />
+      <h1 className="sr-only">Reset your PIXO Brain password</h1>
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Set a new password</CardTitle>
@@ -70,6 +77,7 @@ export default function AdminResetPasswordPage() {
                   type="button"
                   onClick={() => setShow((s) => !s)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                  aria-label={show ? "Hide password" : "Show password"}
                   tabIndex={-1}
                 >
                   {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -92,6 +100,6 @@ export default function AdminResetPasswordPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
